@@ -1,0 +1,3627 @@
+<!doctype html>
+<html lang="en" class="dark">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover" />
+    <title>Guildmasters: Hackathon Edition</title>
+    <meta name="description" content="Tactical card-drafting management sim solving student team formation. Draft student heroes, activate synergy multipliers, and conquer hackathon milestone bosses." />
+    <meta property="og:title" content="Guildmasters: Hackathon Edition" />
+    <meta property="og:description" content="Tactical card-drafting management sim solving student team formation. Draft student heroes, activate synergy multipliers, and conquer hackathon milestone bosses." />
+    <meta property="og:type" content="website" />
+    <meta name="twitter:card" content="summary_large_image" />
+
+    <!-- Google Fonts -->
+    <link rel="preconnect" href="https://fonts.googleapis.com" />
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&family=JetBrains+Mono:wght@400;500;600;700;800&display=swap" rel="stylesheet" />
+
+    <!-- Theme Preload Script: Synchronous theme detection & application to prevent flash of wrong theme -->
+    <script>
+      (function() {
+        const storedTheme = localStorage.getItem('gm_theme_choice') || 'system';
+        const prefersDark = window.matchMedia('(prefers-color-scheme: dark)').matches;
+        const effectiveTheme = (storedTheme === 'system') ? (prefersDark ? 'dark' : 'light') : storedTheme;
+        
+        document.documentElement.setAttribute('data-theme', storedTheme);
+        document.documentElement.setAttribute('data-effective-theme', effectiveTheme);
+        
+        if (effectiveTheme === 'light') {
+          document.documentElement.classList.remove('dark');
+        } else {
+          document.documentElement.classList.add('dark');
+        }
+      })();
+    </script>
+
+    <!-- Tailwind CSS CDN -->
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script>
+      tailwind.config = {
+        darkMode: 'class',
+        theme: {
+          extend: {
+            colors: {
+              slateDark: '#0A0F1D',
+              cardDark: '#1E293B',
+              cardDarkHover: '#263349',
+              tealAccent: '#14B8A6',
+              violetSynergy: '#8B5CF6',
+              accentAmber: '#F59E0B',
+              accentRose: '#F43F5E'
+            },
+            fontFamily: {
+              sans: ['Inter', 'sans-serif'],
+              mono: ['JetBrains Mono', 'monospace']
+            }
+          }
+        }
+      }
+    </script>
+
+    <style>
+      body {
+        background-color: #0A0F1D;
+        color: #E2E8F0;
+        font-family: 'Inter', sans-serif;
+        overflow-x: hidden;
+        touch-action: manipulation;
+        padding-top: env(safe-area-inset-top, 0px);
+        padding-left: env(safe-area-inset-left, 0px);
+        padding-right: env(safe-area-inset-right, 0px);
+      }
+      .pb-safe {
+        padding-bottom: calc(env(safe-area-inset-bottom, 0px) + 4.5rem);
+      }
+      .font-mono {
+        font-family: 'JetBrains Mono', monospace;
+      }
+      .glow-teal {
+        box-shadow: 0 0 15px rgba(20, 184, 166, 0.35);
+      }
+      .glow-violet {
+        box-shadow: 0 0 18px rgba(139, 92, 246, 0.45);
+      }
+      .glow-amber {
+        box-shadow: 0 0 15px rgba(245, 158, 11, 0.35);
+      }
+      .glow-rose {
+        box-shadow: 0 0 18px rgba(244, 63, 94, 0.45);
+      }
+      .border-pulse-violet {
+        animation: borderPulse 2.2s infinite ease-in-out;
+      }
+      @keyframes borderPulse {
+        0%, 100% { border-color: rgba(139, 92, 246, 0.4); box-shadow: 0 0 10px rgba(139, 92, 246, 0.2); }
+        50% { border-color: rgba(139, 92, 246, 0.9); box-shadow: 0 0 20px rgba(139, 92, 246, 0.5); }
+      }
+      .border-pulse-teal {
+        animation: borderTealPulse 2s infinite ease-in-out;
+      }
+      @keyframes borderTealPulse {
+        0%, 100% { border-color: rgba(20, 184, 166, 0.4); }
+        50% { border-color: rgba(20, 184, 166, 0.95); box-shadow: 0 0 16px rgba(20, 184, 166, 0.4); }
+      }
+      /* Synergy Active Slot Card Pulsating Border */
+      @keyframes synergyBorderPulsate {
+        0%, 100% {
+          border-color: rgba(139, 92, 246, 0.9);
+          box-shadow: 0 0 16px rgba(139, 92, 246, 0.5), inset 0 0 12px rgba(139, 92, 246, 0.2);
+          transform: translateY(-2px);
+        }
+        50% {
+          border-color: rgba(20, 184, 166, 1);
+          box-shadow: 0 0 26px rgba(20, 184, 166, 0.75), 0 0 12px rgba(139, 92, 246, 0.6), inset 0 0 18px rgba(20, 184, 166, 0.3);
+          transform: translateY(-4px);
+        }
+      }
+
+      .synergy-active-slot {
+        animation: synergyBorderPulsate 1.8s infinite ease-in-out !important;
+        border-width: 2px !important;
+        background: linear-gradient(180deg, rgba(32, 24, 62, 0.95) 0%, rgba(15, 23, 42, 0.95) 100%) !important;
+        position: relative;
+        z-index: 10;
+      }
+
+      /* Neon stroke & conduit glow keyframes connecting adjacent active cards */
+      @keyframes neonStrokeFlow {
+        0% {
+          stroke-dashoffset: 40;
+          filter: drop-shadow(0 0 4px #8B5CF6) drop-shadow(0 0 8px rgba(139, 92, 246, 0.7));
+        }
+        50% {
+          filter: drop-shadow(0 0 8px #14B8A6) drop-shadow(0 0 16px rgba(20, 184, 166, 0.95));
+        }
+        100% {
+          stroke-dashoffset: 0;
+          filter: drop-shadow(0 0 4px #8B5CF6) drop-shadow(0 0 8px rgba(139, 92, 246, 0.7));
+        }
+      }
+
+      @keyframes neonConduitPulse {
+        0%, 100% {
+          box-shadow: 0 0 8px rgba(139, 92, 246, 0.8), 0 0 16px rgba(139, 92, 246, 0.5);
+          border-color: rgba(139, 92, 246, 0.9);
+          transform: scale(1);
+        }
+        50% {
+          box-shadow: 0 0 18px rgba(20, 184, 166, 0.95), 0 0 28px rgba(20, 184, 166, 0.7);
+          border-color: rgba(20, 184, 166, 1);
+          transform: scale(1.15);
+        }
+      }
+
+      @keyframes neonBeamGradient {
+        0% { background-position: 0% 50%; opacity: 0.8; }
+        50% { background-position: 100% 50%; opacity: 1; filter: drop-shadow(0 0 8px #14B8A6); }
+        100% { background-position: 0% 50%; opacity: 0.8; }
+      }
+
+      .neon-conduit-active {
+        animation: neonConduitPulse 1.6s infinite ease-in-out;
+      }
+
+      .neon-beam-active {
+        background: linear-gradient(90deg, #8B5CF6, #14B8A6, #8B5CF6);
+        background-size: 200% 200%;
+        animation: neonBeamGradient 1.6s infinite linear;
+      }
+
+      .neon-stroke-animated {
+        stroke-dasharray: 6 3;
+        animation: neonStrokeFlow 1.2s infinite linear;
+      }
+      ::-webkit-scrollbar {
+        width: 6px;
+        height: 6px;
+      }
+      ::-webkit-scrollbar-track {
+        background: #0A0F1D;
+      }
+      ::-webkit-scrollbar-thumb {
+        background: #334155;
+        border-radius: 3px;
+      }
+      ::-webkit-scrollbar-thumb:hover {
+        background: #475569;
+      }
+      .grid-pattern {
+        background-size: 32px 32px;
+        background-image: 
+          linear-gradient(to right, rgba(255, 255, 255, 0.02) 1px, transparent 1px),
+          linear-gradient(to bottom, rgba(255, 255, 255, 0.02) 1px, transparent 1px);
+      }
+      @keyframes shakeAnim {
+        0%, 100% { transform: translateX(0); }
+        20% { transform: translateX(-6px); }
+        40% { transform: translateX(6px); }
+        60% { transform: translateX(-4px); }
+        80% { transform: translateX(4px); }
+      }
+      .screen-shake {
+        animation: shakeAnim 0.4s ease-in-out;
+      }
+      /* Shimmer loader for AI Portrait */
+      @keyframes shimmer {
+        0% { transform: translateX(-100%); }
+        100% { transform: translateX(100%); }
+      }
+      .animate-shimmer {
+        animation: shimmer 1.5s infinite;
+      }
+
+      /* =========================================================
+         THEME SYSTEM: CSS ATTRIBUTE-BASED OVERRIDES
+         [data-effective-theme="light"] and [data-effective-theme="matrix"]
+         ========================================================= */
+
+      /* --- DAYLIGHT LIGHT THEME OVERRIDES ---
+         Requirements: Crisp white card surfaces (#FFFFFF), soft gray background (#F8FAFC), 
+         slate borders (#CBD5E1), and dark ink typography (#0F172A).
+      */
+      html[data-effective-theme="light"] body {
+        background-color: #F8FAFC !important;
+        color: #0F172A !important;
+      }
+      html[data-effective-theme="light"] .grid-pattern {
+        background-image: 
+          linear-gradient(to right, rgba(15, 23, 42, 0.04) 1px, transparent 1px),
+          linear-gradient(to bottom, rgba(15, 23, 42, 0.04) 1px, transparent 1px) !important;
+      }
+      html[data-effective-theme="light"] header {
+        background-color: rgba(255, 255, 255, 0.95) !important;
+        border-color: #CBD5E1 !important;
+        box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.05), 0 2px 4px -2px rgba(0, 0, 0, 0.05) !important;
+      }
+      html[data-effective-theme="light"] footer {
+        background-color: #F1F5F9 !important;
+        border-color: #CBD5E1 !important;
+        color: #64748B !important;
+      }
+      /* Cards and Containers */
+      html[data-effective-theme="light"] .bg-cardDark\/85,
+      html[data-effective-theme="light"] .bg-cardDark {
+        background-color: #FFFFFF !important;
+        border-color: #CBD5E1 !important;
+        box-shadow: 0 10px 15px -3px rgba(0, 0, 0, 0.06), 0 4px 6px -4px rgba(0, 0, 0, 0.04) !important;
+      }
+      html[data-effective-theme="light"] .bg-slate-900\/90,
+      html[data-effective-theme="light"] .bg-slate-900\/80,
+      html[data-effective-theme="light"] .bg-slate-900\/50,
+      html[data-effective-theme="light"] .bg-slate-900 {
+        background-color: #F8FAFC !important;
+        border-color: #CBD5E1 !important;
+      }
+      html[data-effective-theme="light"] .bg-slate-950\/90,
+      html[data-effective-theme="light"] .bg-slate-950\/80,
+      html[data-effective-theme="light"] .bg-slate-950\/75,
+      html[data-effective-theme="light"] .bg-slate-950\/60,
+      html[data-effective-theme="light"] .bg-slate-950 {
+        background-color: #F1F5F9 !important;
+        border-color: #CBD5E1 !important;
+      }
+      html[data-effective-theme="light"] .bg-slate-800\/90,
+      html[data-effective-theme="light"] .bg-slate-800\/80,
+      html[data-effective-theme="light"] .bg-slate-800\/40,
+      html[data-effective-theme="light"] .bg-slate-800 {
+        background-color: #E2E8F0 !important;
+        border-color: #CBD5E1 !important;
+        color: #1E293B !important;
+      }
+      html[data-effective-theme="light"] .text-slate-100,
+      html[data-effective-theme="light"] .text-slate-200,
+      html[data-effective-theme="light"] .text-white {
+        color: #0F172A !important;
+      }
+      html[data-effective-theme="light"] .text-slate-300 {
+        color: #334155 !important;
+      }
+      html[data-effective-theme="light"] .text-slate-400 {
+        color: #64748B !important;
+      }
+      html[data-effective-theme="light"] .border-slate-800,
+      html[data-effective-theme="light"] .border-slate-800\/80,
+      html[data-effective-theme="light"] .border-slate-800\/90,
+      html[data-effective-theme="light"] .border-slate-700,
+      html[data-effective-theme="light"] .border-slate-700\/80,
+      html[data-effective-theme="light"] .border-slate-700\/60 {
+        border-color: #CBD5E1 !important;
+      }
+      html[data-effective-theme="light"] .border-slate-800\/60 {
+        border-color: #E2E8F0 !important;
+      }
+      /* Dark pills in light theme */
+      html[data-effective-theme="light"] .bg-violet-950\/80,
+      html[data-effective-theme="light"] .bg-violet-950\/90 {
+        background-color: #EDE9FE !important;
+        color: #6D28D9 !important;
+        border-color: #C4B5FD !important;
+      }
+      html[data-effective-theme="light"] .bg-teal-950\/80 {
+        background-color: #CCFBF1 !important;
+        color: #0F766E !important;
+        border-color: #99F6E4 !important;
+      }
+      html[data-effective-theme="light"] .bg-amber-950\/90,
+      html[data-effective-theme="light"] .bg-amber-950\/80 {
+        background-color: #FEF3C7 !important;
+        color: #B45309 !important;
+        border-color: #FDE68A !important;
+      }
+      html[data-effective-theme="light"] .bg-rose-950\/80 {
+        background-color: #FFE4E6 !important;
+        color: #BE123C !important;
+        border-color: #FECDD3 !important;
+      }
+      /* Modals, Drawers and Docks */
+      html[data-effective-theme="light"] #chat-drawer {
+        background-color: rgba(255, 255, 255, 0.98) !important;
+        border-color: #CBD5E1 !important;
+      }
+      html[data-effective-theme="light"] #cutscene-modal > div,
+      html[data-effective-theme="light"] #difficulty-modal > div,
+      html[data-effective-theme="light"] #coffee-modal > div,
+      html[data-effective-theme="light"] #analytics-modal > div,
+      html[data-effective-theme="light"] #game-over-modal > div {
+        background-color: #FFFFFF !important;
+        border-color: #CBD5E1 !important;
+        color: #0F172A !important;
+      }
+      html[data-effective-theme="light"] nav.fixed.bottom-0 {
+        background-color: rgba(255, 255, 255, 0.95) !important;
+        border-color: #CBD5E1 !important;
+      }
+      html[data-effective-theme="light"] select,
+      html[data-effective-theme="light"] input[type="text"] {
+        background-color: #FFFFFF !important;
+        color: #0F172A !important;
+        border-color: #CBD5E1 !important;
+      }
+      html[data-effective-theme="light"] ::-webkit-scrollbar-track {
+        background: #F8FAFC !important;
+      }
+      html[data-effective-theme="light"] ::-webkit-scrollbar-thumb {
+        background: #CBD5E1 !important;
+      }
+      html[data-effective-theme="light"] ::-webkit-scrollbar-thumb:hover {
+        background: #94A3B8 !important;
+      }
+      html[data-effective-theme="light"] .synergy-active-slot {
+        background: linear-gradient(180deg, #F5F3FF 0%, #FFFFFF 100%) !important;
+        border-color: #8B5CF6 !important;
+      }
+
+      /* --- CRT MATRIX THEME OVERRIDES ---
+         Requirements: Phosphor green neon highlights (#22C55E / #4ADE80), pitch black surfaces (#050805 / #0D140D),
+         scanline texture, and retro cyber console aesthetic.
+      */
+      html[data-effective-theme="matrix"] body {
+        background-color: #040804 !important;
+        color: #4ADE80 !important;
+        text-shadow: 0 0 3px rgba(34, 197, 94, 0.5);
+      }
+      html[data-effective-theme="matrix"] .grid-pattern {
+        background-image: 
+          linear-gradient(to right, rgba(34, 197, 94, 0.08) 1px, transparent 1px),
+          linear-gradient(to bottom, rgba(34, 197, 94, 0.08) 1px, transparent 1px) !important;
+      }
+      html[data-effective-theme="matrix"] header {
+        background-color: rgba(5, 12, 5, 0.96) !important;
+        border-color: #15803D !important;
+        box-shadow: 0 0 15px rgba(34, 197, 94, 0.2) !important;
+      }
+      html[data-effective-theme="matrix"] footer {
+        background-color: #050C05 !important;
+        border-color: #166534 !important;
+        color: #22C55E !important;
+      }
+      html[data-effective-theme="matrix"] .bg-cardDark\/85,
+      html[data-effective-theme="matrix"] .bg-cardDark {
+        background-color: #091209 !important;
+        border-color: #166534 !important;
+        box-shadow: 0 0 12px rgba(34, 197, 94, 0.15) !important;
+      }
+      html[data-effective-theme="matrix"] .bg-slate-900\/90,
+      html[data-effective-theme="matrix"] .bg-slate-900\/80,
+      html[data-effective-theme="matrix"] .bg-slate-900\/50,
+      html[data-effective-theme="matrix"] .bg-slate-900 {
+        background-color: #060E06 !important;
+        border-color: #15803D !important;
+      }
+      html[data-effective-theme="matrix"] .bg-slate-950\/90,
+      html[data-effective-theme="matrix"] .bg-slate-950\/80,
+      html[data-effective-theme="matrix"] .bg-slate-950 {
+        background-color: #030703 !important;
+        border-color: #166534 !important;
+      }
+      html[data-effective-theme="matrix"] .bg-slate-800\/90,
+      html[data-effective-theme="matrix"] .bg-slate-800\/80,
+      html[data-effective-theme="matrix"] .bg-slate-800 {
+        background-color: #0F200F !important;
+        border-color: #16A34A !important;
+        color: #86EFAC !important;
+      }
+      html[data-effective-theme="matrix"] .text-slate-100,
+      html[data-effective-theme="matrix"] .text-slate-200,
+      html[data-effective-theme="matrix"] .text-white {
+        color: #86EFAC !important;
+      }
+      html[data-effective-theme="matrix"] .text-slate-300,
+      html[data-effective-theme="matrix"] .text-slate-400 {
+        color: #4ADE80 !important;
+      }
+      html[data-effective-theme="matrix"] .text-teal-300,
+      html[data-effective-theme="matrix"] .text-teal-400 {
+        color: #22C55E !important;
+      }
+      html[data-effective-theme="matrix"] .border-slate-800,
+      html[data-effective-theme="matrix"] .border-slate-800\/80,
+      html[data-effective-theme="matrix"] .border-slate-700,
+      html[data-effective-theme="matrix"] .border-slate-700\/80 {
+        border-color: #166534 !important;
+      }
+      html[data-effective-theme="matrix"] nav.fixed.bottom-0 {
+        background-color: rgba(5, 12, 5, 0.96) !important;
+        border-color: #15803D !important;
+      }
+      html[data-effective-theme="matrix"] #chat-drawer {
+        background-color: rgba(5, 12, 5, 0.98) !important;
+        border-color: #16A34A !important;
+      }
+      html[data-effective-theme="matrix"] select,
+      html[data-effective-theme="matrix"] input[type="text"] {
+        background-color: #060E06 !important;
+        color: #4ADE80 !important;
+        border-color: #15803D !important;
+      }
+      html[data-effective-theme="matrix"] ::-webkit-scrollbar-track {
+        background: #030703 !important;
+      }
+      html[data-effective-theme="matrix"] ::-webkit-scrollbar-thumb {
+        background: #166534 !important;
+      }
+    </style>
+  </head>
+  <body class="min-h-screen bg-slateDark text-slate-100 flex flex-col grid-pattern antialiased selection:bg-teal-500 selection:text-white">
+    
+    <!-- TOP HUD & INTEL TICKER -->
+    <header class="w-full bg-[#111827]/95 border-b border-slate-800/80 backdrop-blur sticky top-0 z-30 px-3 lg:px-6 py-2 shadow-lg">
+      <div class="max-w-7xl mx-auto flex flex-wrap items-center justify-between gap-2.5">
+        <!-- Logo & Branding -->
+        <div class="flex items-center gap-2.5">
+          <div class="w-9 h-9 rounded-lg bg-gradient-to-br from-teal-500 to-violet-600 flex items-center justify-center shadow-md font-mono font-bold text-white text-lg">
+            G
+          </div>
+          <div>
+            <div class="flex items-center gap-1.5">
+              <h1 class="text-sm lg:text-base font-bold tracking-tight text-white flex items-center gap-1.5">
+                GUILDMASTERS <span class="text-xs px-1.5 py-0.5 rounded bg-teal-500/20 text-teal-300 font-mono font-semibold border border-teal-500/30">HACKATHON ED.</span>
+              </h1>
+            </div>
+            <p class="text-[10px] text-slate-400 font-mono hidden sm:block">Tactical Team-Formation & Search-Grounded Boss Combat</p>
+          </div>
+        </div>
+
+        <!-- Metric Badges & Clocks -->
+        <div class="flex items-center flex-wrap gap-2 lg:gap-3">
+          
+          <!-- Google AI Studio & Grounding Status Pill -->
+          <div id="hud-ai-status-pill" class="bg-slate-900/90 border border-teal-500/30 hover:border-teal-500/60 rounded-lg px-2.5 py-1 flex items-center gap-1.5 transition cursor-pointer" title="Click to view AI Studio service connectivity">
+            <span id="ai-status-dot" class="w-2 h-2 rounded-full bg-teal-400 animate-pulse"></span>
+            <span id="ai-status-text" class="text-[10px] font-mono font-semibold text-teal-300">AI Studio: Grounding Ready</span>
+          </div>
+
+          <!-- Difficulty Mode Selector Pill -->
+          <div class="relative">
+            <button id="btn-difficulty-select" class="bg-slate-900/90 border border-slate-700/80 hover:border-teal-500/50 rounded-lg px-2.5 py-1 flex items-center gap-1.5 transition text-xs font-mono group cursor-pointer shadow-sm active:scale-95" title="Sprint Difficulty: Casual (72h), Standard (48h), Hardcore (24h)">
+              <span class="text-[8px] uppercase tracking-wider text-slate-400">MODE</span>
+              <span id="hud-difficulty-badge" class="px-1.5 py-0.5 rounded text-[10px] font-bold bg-violet-950/80 text-violet-300 border border-violet-500/50 flex items-center gap-1">
+                <span>🟣</span> STANDARD 48H
+              </span>
+              <span class="text-[9px] text-slate-400 group-hover:text-teal-300 transition">⚙️</span>
+            </button>
+          </div>
+
+          <!-- 48-Hour Countdown Clock -->
+          <div class="bg-slate-900/90 border border-slate-700/80 rounded-lg px-2.5 py-1 flex items-center gap-2">
+            <span class="inline-block w-2 h-2 rounded-full bg-teal-400 animate-ping"></span>
+            <div class="flex flex-col">
+              <span class="text-[8px] uppercase font-mono tracking-wider text-slate-400">Clock</span>
+              <span id="hud-clock" class="text-xs lg:text-sm font-mono font-extrabold text-teal-300 tracking-wider">48:00:00</span>
+            </div>
+            <button id="btn-clock-speed" title="Toggle Clock Simulation (1x / 5x / Pause)" class="ml-0.5 text-[9px] px-1 py-0.5 rounded bg-slate-800 hover:bg-slate-700 text-slate-300 border border-slate-700 font-mono">
+              1x
+            </button>
+          </div>
+
+          <!-- Milestone Phase Counter -->
+          <div class="bg-slate-900/90 border border-slate-700/80 rounded-lg px-2.5 py-1 flex items-center gap-2">
+            <div class="flex flex-col">
+              <span class="text-[8px] uppercase font-mono tracking-wider text-slate-400">Milestone</span>
+              <span id="hud-phase" class="text-xs font-mono font-bold text-violet-300">Phase 1/3</span>
+            </div>
+            <div class="flex items-center gap-1">
+              <span id="phase-pip-1" class="w-2 h-2 rounded-full bg-violet-500 ring-1 ring-violet-400/50"></span>
+              <span id="phase-pip-2" class="w-2 h-2 rounded-full bg-slate-700"></span>
+              <span id="phase-pip-3" class="w-2 h-2 rounded-full bg-slate-700"></span>
+            </div>
+          </div>
+
+          <!-- Guild XP & Stamina -->
+          <div class="bg-slate-900/90 border border-slate-700/80 rounded-lg px-2.5 py-1 flex items-center gap-2.5">
+            <div class="flex flex-col">
+              <span class="text-[8px] uppercase font-mono tracking-wider text-slate-400">Guild XP</span>
+              <span id="hud-xp" class="text-xs font-mono font-bold text-amber-400">0 PTS</span>
+            </div>
+            <div class="h-5 w-px bg-slate-800"></div>
+            <div class="flex flex-col min-w-[70px]">
+              <div class="flex justify-between items-center text-[8px] font-mono text-slate-400 mb-0.5">
+                <span>STAMINA</span>
+                <span id="hud-stamina-text" class="text-teal-300 font-bold">100/100</span>
+              </div>
+              <div class="w-full bg-slate-800 h-1 rounded-full overflow-hidden">
+                <div id="hud-stamina-bar" class="bg-gradient-to-r from-teal-400 to-teal-200 h-full transition-all duration-300" style="width: 100%;"></div>
+              </div>
+            </div>
+          </div>
+
+          <!-- Espresso Recovery Action -->
+          <button id="btn-coffee-rest" title="Quick Espresso: +25 Stamina, costs 1h clock" class="px-2 py-1 rounded-lg bg-amber-500/10 hover:bg-amber-500/20 text-amber-300 border border-amber-500/30 text-[11px] font-mono font-medium flex items-center gap-1 transition-colors">
+            <span>☕</span>
+            <span class="hidden md:inline">Espresso (-1h)</span>
+          </button>
+
+          <!-- Coffee Run Side Quest Trigger & Active Boost Pill -->
+          <div id="coffee-run-hud-container" class="flex items-center gap-1.5">
+            <!-- Active Velocity Boost Pill -->
+            <div id="hud-coffee-boost-pill" class="hidden bg-amber-950/90 border border-amber-500/60 rounded-lg px-2 py-1 flex items-center gap-1.5 animate-pulse shadow-sm" title="Active +10% Fellowship Velocity Boost from Coffee Run!">
+              <span class="text-xs">⚡☕</span>
+              <div class="flex flex-col">
+                <span class="text-[8px] font-mono font-bold text-amber-300 uppercase tracking-wider leading-none">+10% VELOCITY</span>
+                <span id="hud-coffee-boost-timer" class="text-[10px] font-mono font-extrabold text-amber-200 leading-tight">02:00</span>
+              </div>
+            </div>
+
+            <!-- Coffee Run Alert Banner / Ready Button -->
+            <button id="btn-coffee-run-alert" class="hidden px-2.5 py-1 rounded-lg bg-gradient-to-r from-amber-500/30 to-amber-600/30 hover:from-amber-500/50 hover:to-amber-600/50 text-amber-300 border border-amber-400/80 text-[11px] font-mono font-bold flex items-center gap-1.5 shadow-md shadow-amber-900/30 animate-bounce active:scale-95 cursor-pointer">
+              <span>☕</span>
+              <span class="tracking-wide">COFFEE RUN READY!</span>
+              <span class="w-2 h-2 rounded-full bg-amber-400 animate-ping"></span>
+            </button>
+          </div>
+
+          <!-- Multi-Theme Switcher Dropdown (Requirement: #select-theme) -->
+          <div class="relative flex items-center">
+            <label for="select-theme" class="sr-only">Theme Selector</label>
+            <div class="bg-slate-900/90 border border-slate-700/80 hover:border-teal-500/50 rounded-lg px-2 py-1 flex items-center gap-1.5 transition text-xs font-mono shadow-sm">
+              <span id="theme-selector-icon" class="text-xs" aria-hidden="true">💻</span>
+              <span class="text-[8px] uppercase tracking-wider text-slate-400 hidden sm:inline">THEME</span>
+              <select id="select-theme" class="bg-transparent text-slate-200 font-mono text-[11px] font-semibold focus:outline-none cursor-pointer border-none pr-1 appearance-none" title="Select visual theme: System Auto, Cyber Dark, Daylight Light, or CRT Matrix">
+                <option value="system" class="bg-slate-900 text-slate-100">Auto (System)</option>
+                <option value="dark" class="bg-slate-900 text-slate-100">Cyber Dark</option>
+                <option value="light" class="bg-slate-900 text-slate-100">Daylight Light</option>
+                <option value="matrix" class="bg-slate-900 text-slate-100">CRT Matrix</option>
+              </select>
+              <span class="text-[9px] text-slate-400 pointer-events-none">▼</span>
+            </div>
+          </div>
+
+          <!-- 3AM Standup Chat Button -->
+          <button id="btn-open-chat" class="px-2.5 py-1 rounded-lg bg-violet-600/20 hover:bg-violet-600/30 text-violet-300 border border-violet-500/40 text-[11px] font-mono font-bold flex items-center gap-1.5 transition active:scale-95 shadow-sm">
+            <span>🤖</span>
+            <span>3AM STANDUP</span>
+            <span class="w-1.5 h-1.5 rounded-full bg-violet-400 animate-ping"></span>
+          </button>
+
+          <!-- Gemini Live Audio Narration Toggle -->
+          <button id="btn-toggle-voice" title="Gemini Voice / Live Audio Narration" class="px-2 py-1 rounded-lg bg-teal-500/10 hover:bg-teal-500/20 text-teal-300 border border-teal-500/30 text-[11px] font-mono font-bold flex items-center gap-1 transition">
+            <span id="icon-voice">🎙️</span>
+            <span class="hidden sm:inline">VOICE ON</span>
+          </button>
+
+          <!-- Audio SFX & Reset -->
+          <div class="flex items-center gap-1">
+            <button id="btn-toggle-mute" title="Toggle Sound SFX" class="p-1 rounded-lg bg-slate-800 hover:bg-slate-700 text-slate-300 border border-slate-700 transition">
+              <span id="icon-audio">🔊</span>
+            </button>
+            <button id="btn-reset-run" title="Reset Run" class="p-1 rounded-lg bg-slate-800 hover:bg-rose-900/40 text-slate-300 hover:text-rose-300 border border-slate-700 transition text-xs font-mono">
+              🔄
+            </button>
+          </div>
+        </div>
+      </div>
+    </header>
+
+    <!-- MAIN GAMEPLAY CANVAS -->
+    <!-- Mobile & Tablet Screen Adaptive Floating Tab Switcher (Visible on < 1024px) -->
+    <div class="lg:hidden sticky top-[57px] z-20 w-full bg-slate-900/95 border-b border-slate-800/90 backdrop-blur px-3 py-1.5 shadow-md">
+      <div class="max-w-md mx-auto grid grid-cols-3 gap-1.5 p-1 bg-slate-950/80 rounded-xl border border-slate-800/80 text-xs font-mono">
+        <button id="tab-btn-roster" class="mobile-nav-tab py-2 px-2 rounded-lg bg-teal-500/20 text-teal-300 font-bold border border-teal-500/40 flex items-center justify-center gap-1.5 transition active:scale-95 shadow-sm min-h-[44px]">
+          <span>🛡️</span>
+          <span>Roster</span>
+        </button>
+        <button id="tab-btn-boss" class="mobile-nav-tab py-2 px-2 rounded-lg text-slate-400 hover:text-slate-200 flex items-center justify-center gap-1.5 transition active:scale-95 min-h-[44px]">
+          <span>👾</span>
+          <span>Boss / Intel</span>
+        </button>
+        <button id="tab-btn-chat" class="mobile-nav-tab py-2 px-2 rounded-lg text-slate-400 hover:text-slate-200 flex items-center justify-center gap-1.5 transition active:scale-95 min-h-[44px]">
+          <span>🤖</span>
+          <span>3AM Chat</span>
+        </button>
+      </div>
+    </div>
+
+    <main class="flex-1 max-w-7xl w-full mx-auto p-3 lg:p-5 grid grid-cols-1 lg:grid-cols-12 gap-4 items-start pb-safe">
+      
+      <!-- LEFT / CENTER COLUMN: Active Roster & Drafting Pool (8 Cols on desktop, 12 on tablet/mobile) -->
+      <section id="panel-roster-column" class="lg:col-span-8 flex flex-col gap-4">
+        
+        <!-- SECTION 1: ACTIVE ROSTER (4 HERO SLOTS) -->
+        <div class="bg-cardDark/85 border border-slate-800/80 rounded-xl p-3.5 lg:p-4 shadow-xl relative backdrop-blur-sm">
+          <div class="flex items-center justify-between mb-3">
+            <div class="flex items-center gap-2">
+              <div class="w-2 h-4 rounded bg-teal-400"></div>
+              <h2 class="text-xs lg:text-sm font-bold uppercase tracking-wider text-slate-200">
+                Active Guild Roster <span class="text-xs font-mono text-slate-400 font-normal">(4 Slots)</span>
+              </h2>
+            </div>
+            <div class="flex items-center gap-2">
+              <span class="text-xs font-mono text-slate-400">Capacity:</span>
+              <span id="roster-count-badge" class="text-xs font-mono font-bold px-2 py-0.5 rounded bg-slate-900 text-teal-300 border border-slate-700">0 / 4</span>
+              <button id="btn-clear-roster" title="Bench all active members" class="text-[10px] font-mono px-2 py-0.5 rounded bg-slate-800 hover:bg-slate-700 text-slate-400 hover:text-slate-200 border border-slate-700 transition">
+                Bench All
+              </button>
+            </div>
+          </div>
+
+          <!-- 4 Roster Slots Grid -->
+          <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-2.5" id="active-roster-container">
+            <!-- Dynamically populated by JS -->
+          </div>
+
+          <!-- ADJACENT SYNERGY CONDUIT NETWORK (Animated Circuit Trace) -->
+          <div id="adjacent-conduits-trace" class="hidden mt-3 p-2 rounded-xl bg-slate-950/80 border border-violet-500/40 font-mono text-[10px] relative overflow-hidden transition-all duration-300">
+            <!-- Dynamically populated by JS when adjacent/combo synergies activate -->
+          </div>
+
+          <!-- SYNERGY MATRIX BANNER (Realtime Synergies) -->
+          <div class="mt-3.5 pt-3 border-t border-slate-800 flex flex-col sm:flex-row sm:items-center justify-between gap-2">
+            <div class="flex items-center gap-2 flex-wrap">
+              <span class="text-[11px] font-bold uppercase tracking-wider text-violet-400 flex items-center gap-1">
+                <span>⚡</span> SYNERGY MATRIX:
+              </span>
+              <div id="active-synergies-pills" class="flex flex-wrap items-center gap-1.5">
+                <span class="text-[11px] text-slate-500 font-mono">No active synergy combos yet (pair complementary tags)</span>
+              </div>
+            </div>
+            <div class="flex items-center gap-1.5 self-end sm:self-auto shrink-0">
+              <span class="text-[10px] font-mono text-slate-400">Multiplier:</span>
+              <span id="synergy-multiplier-badge" class="text-xs font-mono font-extrabold px-2 py-0.5 rounded bg-violet-950/90 text-violet-300 border border-violet-500/40 glow-violet">
+                1.00x
+              </span>
+            </div>
+          </div>
+        </div>
+
+        <!-- SECTION 2: DRAFTING POOL (3 Candidate Student Cards) -->
+        <div class="bg-cardDark/85 border border-slate-800/80 rounded-xl p-3.5 lg:p-4 shadow-xl relative backdrop-blur-sm">
+          <div class="flex flex-wrap items-center justify-between gap-2 mb-3">
+            <div class="flex items-center gap-2">
+              <div class="w-2 h-4 rounded bg-violet-400"></div>
+              <h2 class="text-xs lg:text-sm font-bold uppercase tracking-wider text-slate-200">
+                Talent Pool <span class="text-xs font-mono text-slate-400 font-normal">(Draft with Imagen 3 Portraits)</span>
+              </h2>
+            </div>
+            
+            <!-- Reroll Button -->
+            <button id="btn-reroll-pool" class="group relative px-3 py-1 rounded-lg bg-gradient-to-r from-teal-500/20 to-teal-500/10 hover:from-teal-500/30 hover:to-teal-500/20 text-teal-300 border border-teal-500/40 text-[11px] font-mono font-bold flex items-center gap-1.5 shadow-sm transition active:scale-95">
+              <span class="inline-block transition-transform group-hover:rotate-180 duration-300">🎲</span>
+              <span>REROLL TALENT</span>
+              <span class="text-[9px] px-1 py-0.2 rounded bg-slate-900/90 text-teal-400 border border-teal-500/30">-10 NRG</span>
+            </button>
+          </div>
+
+          <!-- Stamina Forecast Projection Bar across Remaining Milestone Phases -->
+          <div id="stamina-forecast-projection-bar" class="mb-3 p-2.5 rounded-xl bg-slate-950/75 border border-teal-500/25 font-mono text-[10px] flex flex-col gap-1.5 shadow-inner">
+            <!-- Dynamically populated by renderStaminaForecastBar() -->
+          </div>
+
+          <!-- Candidate 3-Cards Deck with Dynamic Portraits -->
+          <div class="grid grid-cols-1 md:grid-cols-3 gap-3" id="drafting-pool-container">
+            <!-- Dynamically populated by JS -->
+          </div>
+
+          <!-- Synergy Guide Cheatsheet (Collapsible) -->
+          <div class="mt-3 pt-2.5 border-t border-slate-800/80">
+            <details class="group cursor-pointer">
+              <summary class="text-[11px] font-mono text-slate-400 hover:text-slate-300 flex items-center justify-between select-none">
+                <span class="flex items-center gap-1.5">
+                  <span class="text-violet-400">ℹ️</span> Synergy Matrix Combos & Multiplier Rules
+                </span>
+                <span class="text-slate-500 group-open:rotate-180 transition-transform text-[10px]">▼</span>
+              </summary>
+              <div class="mt-2 grid grid-cols-1 sm:grid-cols-2 md:grid-cols-4 gap-2 text-[10px] font-mono bg-slate-900/80 p-2.5 rounded-lg border border-slate-800 text-slate-300">
+                <div class="p-1.5 rounded bg-slate-800/40 border border-slate-800">
+                  <div class="text-violet-400 font-semibold">Pythonista + Database Guru</div>
+                  <div class="text-[9px] text-slate-400">Data Pipeline Harmonic: +25% Power</div>
+                </div>
+                <div class="p-1.5 rounded bg-slate-800/40 border border-slate-800">
+                  <div class="text-teal-400 font-semibold">CSS Wizard + Backend</div>
+                  <div class="text-[9px] text-slate-400">Fullstack Surge: +25% Power</div>
+                </div>
+                <div class="p-1.5 rounded bg-slate-800/40 border border-slate-800">
+                  <div class="text-amber-400 font-semibold">NightOwl + NightOwl</div>
+                  <div class="text-[9px] text-slate-400">3AM Red Bull Euphoria: +30% Surge</div>
+                </div>
+                <div class="p-1.5 rounded bg-slate-800/40 border border-slate-800">
+                  <div class="text-rose-400 font-semibold">DevOps + Security</div>
+                  <div class="text-[9px] text-slate-400">Hardened Infra: +20% Resilience</div>
+                </div>
+              </div>
+            </details>
+          </div>
+        </div>
+
+      </section>
+
+      <!-- RIGHT COLUMN: Boss Milestone & Search Grounding Console (4 Cols on desktop, 12 on tablet/mobile) -->
+      <section id="panel-boss-column" class="lg:col-span-4 flex flex-col gap-3.5 hidden lg:flex">
+        
+        <!-- Current Boss Milestone Card -->
+        <div class="bg-cardDark/85 border border-slate-800/80 rounded-xl p-3.5 shadow-xl relative backdrop-blur-sm">
+          <div class="flex items-center justify-between mb-2.5">
+            <span class="text-xs font-mono font-bold uppercase tracking-wider text-rose-400 flex items-center gap-1.5">
+              <span class="w-2 h-2 rounded-full bg-rose-500 animate-pulse"></span>
+              Milestone Boss
+            </span>
+            <span id="boss-phase-badge" class="text-[10px] font-mono px-2 py-0.5 rounded bg-rose-950/80 text-rose-300 border border-rose-500/40 font-bold">
+              PHASE 1 BOSS
+            </span>
+          </div>
+
+          <!-- Boss Banner -->
+          <div id="boss-card-container" class="bg-slate-900/90 rounded-lg p-3 border border-slate-800 relative overflow-hidden">
+            <!-- Dynamically populated by JS -->
+          </div>
+
+          <!-- Google Search Grounding Intel Feed -->
+          <div class="mt-3 p-2.5 rounded-lg bg-slate-950/90 border border-teal-500/30 font-mono text-[10px] relative">
+            <div class="flex items-center justify-between mb-1.5">
+              <div class="flex items-center gap-1.5 text-teal-300 font-bold">
+                <span class="animate-pulse">🔍</span>
+                <span>GOOGLE SEARCH GROUNDING</span>
+              </div>
+              <button id="btn-refresh-grounding" title="Refetch live breaking search telemetry" class="text-[9px] px-1.5 py-0.5 rounded bg-teal-500/20 hover:bg-teal-500/30 text-teal-300 border border-teal-500/40 transition">
+                ↻ Refetch Intel
+              </button>
+            </div>
+            <p id="boss-grounded-intel" class="text-slate-300 text-[10px] leading-relaxed italic">
+              Loading real-time breaking tech telemetry via Gemini Google Search...
+            </p>
+            <div id="boss-grounding-sources" class="mt-1.5 flex items-center gap-1 flex-wrap text-[9px] text-teal-400/80">
+              <!-- Source links -->
+            </div>
+          </div>
+
+          <!-- Power Metrics Comparison -->
+          <div class="mt-3 space-y-2.5">
+            <!-- Power Bar -->
+            <div>
+              <div class="flex justify-between items-center text-xs font-mono mb-1">
+                <span class="text-slate-400">Team Deployed Power:</span>
+                <span id="hud-evaluated-power" class="font-bold text-teal-300">0 PWR</span>
+              </div>
+              <div class="w-full bg-slate-900 h-2.5 rounded-full overflow-hidden border border-slate-800 relative">
+                <div id="bar-team-power" class="h-full bg-gradient-to-r from-teal-500 to-violet-500 transition-all duration-300" style="width: 0%;"></div>
+                <div id="bar-threshold-marker" class="absolute top-0 bottom-0 w-0.5 bg-rose-400 shadow" style="left: 60%;" title="Boss Target Threshold"></div>
+              </div>
+              <div class="flex justify-between text-[9px] font-mono text-slate-500 mt-1">
+                <span>0</span>
+                <span id="text-threshold-target" class="text-rose-400 font-semibold">Target: 220</span>
+              </div>
+            </div>
+
+            <!-- Deployment Evaluation Forecast -->
+            <div id="eval-status-box" class="p-2 rounded-lg bg-slate-900/80 border border-slate-800 text-[11px] font-mono flex items-center justify-between">
+              <span class="text-slate-400">Status:</span>
+              <span id="eval-status-text" class="text-amber-400 font-semibold">Draft Full 4-Hero Team</span>
+            </div>
+
+            <!-- DEPLOY ROSTER BUTTON -->
+            <button id="btn-deploy-roster" class="w-full py-2.5 px-4 rounded-xl bg-gradient-to-r from-teal-500 to-violet-600 hover:from-teal-400 hover:to-violet-500 text-white font-mono font-extrabold text-xs tracking-wider uppercase shadow-lg transition-all transform active:scale-98 flex items-center justify-center gap-2 group cursor-pointer">
+              <span>🚀</span>
+              <span>DEPLOY ROSTER & VEO CUTSCENE</span>
+            </button>
+            <p class="text-[9px] font-mono text-slate-500 text-center">
+              ⚠️ Deficit causes <span class="text-rose-400 font-semibold">-6h penalty</span>, fatigue & Veo wipe cutscene!
+            </p>
+          </div>
+        </div>
+
+        <!-- Hackathon Console & Combat Stream -->
+        <div class="bg-cardDark/85 border border-slate-800/80 rounded-xl p-3 shadow-xl relative backdrop-blur-sm">
+          <div class="flex items-center justify-between mb-1.5">
+            <span class="text-[10px] font-mono font-bold uppercase tracking-wider text-slate-400 flex items-center gap-1.5">
+              <span>📟</span> Console Telemetry Stream
+            </span>
+            <button id="btn-clear-log" class="text-[9px] font-mono text-slate-500 hover:text-slate-300">
+              Clear
+            </button>
+          </div>
+          <div id="console-log-box" class="h-36 overflow-y-auto space-y-1 font-mono text-[10px] bg-slate-950/80 p-2 rounded-lg border border-slate-800/90 text-slate-300">
+            <!-- Populated by JS -->
+          </div>
+        </div>
+
+      </section>
+    </main>
+
+    <!-- FOOTER STATUS -->
+    <footer class="mt-auto py-2 px-4 text-center border-t border-slate-800/60 text-slate-500 text-[10px] font-mono pb-14 lg:pb-2">
+      Guildmasters: Hackathon Edition
+    </footer>
+
+    <!-- MOBILE FIXED BOTTOM ACTION DOCK (Visible on < 1024px with iOS Safe-Area Padding) -->
+    <nav class="lg:hidden fixed bottom-0 inset-x-0 z-40 bg-[#0F172A]/95 border-t border-slate-800/90 backdrop-blur-lg px-4 py-2 flex items-center justify-around shadow-2xl" style="padding-bottom: max(0.5rem, env(safe-area-inset-bottom));">
+      <button id="dock-btn-roster" class="mobile-dock-btn flex flex-col items-center justify-center gap-0.5 text-teal-300 transition active:scale-95 min-h-[44px] min-w-[64px]">
+        <span class="text-base">🛡️</span>
+        <span class="text-[10px] font-mono font-bold tracking-tight">Roster</span>
+      </button>
+      <button id="dock-btn-boss" class="mobile-dock-btn flex flex-col items-center justify-center gap-0.5 text-slate-400 hover:text-slate-200 transition active:scale-95 min-h-[44px] min-w-[64px]">
+        <span class="text-base">👾</span>
+        <span class="text-[10px] font-mono font-medium tracking-tight">Boss / Intel</span>
+      </button>
+      <button id="dock-btn-chat" class="mobile-dock-btn flex flex-col items-center justify-center gap-0.5 text-slate-400 hover:text-slate-200 transition active:scale-95 min-h-[44px] min-w-[64px]">
+        <div class="relative">
+          <span class="text-base">🤖</span>
+          <span class="absolute -top-0.5 -right-1 w-2 h-2 rounded-full bg-violet-400 animate-pulse"></span>
+        </div>
+        <span class="text-[10px] font-mono font-medium tracking-tight">3AM Chat</span>
+      </button>
+    </nav>
+
+    <!-- AI LEAD GUILDMASTER 3AM STANDUP CHAT SIDE DRAWER -->
+    <div id="chat-drawer" class="fixed inset-y-0 right-0 z-50 w-full sm:w-96 bg-slate-900/95 border-l border-slate-700/80 shadow-2xl backdrop-blur-md transform translate-x-full transition-transform duration-300 flex flex-col">
+      <!-- Drawer Header -->
+      <div class="p-3.5 border-b border-slate-800 flex items-center justify-between bg-slate-950/60">
+        <div class="flex items-center gap-2">
+          <div class="w-8 h-8 rounded-lg bg-gradient-to-br from-violet-600 to-indigo-700 flex items-center justify-center text-lg shadow-sm">
+            🤖
+          </div>
+          <div>
+            <h3 class="text-xs font-bold font-mono text-white flex items-center gap-1.5">
+              AI Lead Guildmaster
+              <span class="w-2 h-2 rounded-full bg-teal-400 animate-pulse"></span>
+            </h3>
+            <p class="text-[10px] font-mono text-slate-400">Gemini 3.5 &bull; 3AM Standup & Strategy</p>
+          </div>
+        </div>
+        <button id="btn-close-chat" class="p-1 rounded-lg text-slate-400 hover:text-white hover:bg-slate-800 transition font-mono text-sm">
+          ✕
+        </button>
+      </div>
+
+      <!-- Quick Action Chips -->
+      <div class="p-2.5 border-b border-slate-800/80 flex items-center gap-1.5 overflow-x-auto text-[10px] font-mono bg-slate-900/50">
+        <button id="chip-roast" class="px-2 py-1 rounded bg-violet-950/80 hover:bg-violet-900 text-violet-300 border border-violet-500/40 shrink-0 transition">
+          🔥 Roast Roster
+        </button>
+        <button id="chip-advice" class="px-2 py-1 rounded bg-teal-950/80 hover:bg-teal-900 text-teal-300 border border-teal-500/40 shrink-0 transition">
+          ☕ 3AM Strategy
+        </button>
+        <button id="chip-odds" class="px-2 py-1 rounded bg-amber-950/80 hover:bg-amber-900 text-amber-300 border border-amber-500/40 shrink-0 transition">
+          📊 Calculate Odds
+        </button>
+      </div>
+
+      <!-- Message History Thread -->
+      <div id="chat-messages-container" class="flex-1 overflow-y-auto p-3.5 space-y-3 font-mono text-xs">
+        <!-- Initial Guildmaster Greeting -->
+        <div class="flex items-start gap-2">
+          <span class="text-lg shrink-0">🤖</span>
+          <div class="bg-slate-800/90 border border-slate-700/60 rounded-xl p-2.5 text-slate-200 text-[11px] leading-relaxed shadow-sm">
+            It's 3:00 AM. 48 hours is evaporating. Your GitHub commit graph is looking sparse. Show me your roster or ask for tactical deployment advice before you crash into that milestone boss!
+          </div>
+        </div>
+      </div>
+
+      <!-- Chat Input Box -->
+      <div class="p-3 border-t border-slate-800 bg-slate-950/80">
+        <form id="chat-form" class="flex items-center gap-2">
+          <input 
+            type="text" 
+            id="chat-input" 
+            placeholder="Ask AI Lead Guildmaster anything..." 
+            class="flex-1 bg-slate-900 border border-slate-700 focus:border-violet-500 rounded-lg px-3 py-2 text-xs font-mono text-slate-100 placeholder-slate-500 outline-none transition"
+          />
+          <button 
+            type="submit" 
+            id="btn-send-chat" 
+            class="px-3 py-2 rounded-lg bg-violet-600 hover:bg-violet-500 text-white font-mono text-xs font-bold transition flex items-center justify-center shrink-0"
+          >
+            Send
+          </button>
+        </form>
+      </div>
+    </div>
+
+    <!-- MODAL: VEO 3 VIDEO CUTSCENE & KINETIC CANVAS -->
+    <div id="cutscene-modal" class="fixed inset-0 z-50 bg-black/90 backdrop-blur-md hidden items-center justify-center p-3 lg:p-6">
+      <div class="bg-slate-900 border border-slate-700 max-w-2xl w-full rounded-2xl p-5 shadow-2xl relative flex flex-col gap-3.5 overflow-hidden">
+        <!-- Header -->
+        <div class="flex items-center justify-between border-b border-slate-800 pb-2.5">
+          <div class="flex items-center gap-2">
+            <span id="cutscene-badge-icon" class="text-2xl">🎬</span>
+            <div>
+              <h3 id="cutscene-title" class="text-sm font-bold font-mono text-white">VEO 3 MICRO-CUTSCENE ENGINE</h3>
+              <p id="cutscene-subtitle" class="text-[10px] text-teal-400 font-mono">Milestone Deployment Outcome Simulation</p>
+            </div>
+          </div>
+          <span id="cutscene-status-tag" class="px-2 py-0.5 rounded text-[10px] font-mono font-bold bg-teal-500/20 text-teal-300 border border-teal-500/40">
+            200 OK CLEARED
+          </span>
+        </div>
+
+        <!-- Kinetic HTML5 Canvas & Video Playback Container -->
+        <div class="relative w-full aspect-video bg-black rounded-xl overflow-hidden border border-slate-800 flex items-center justify-center shadow-inner">
+          <canvas id="cutscene-canvas" class="absolute inset-0 w-full h-full"></canvas>
+          <div id="cutscene-overlay-text" class="absolute inset-0 flex flex-col items-center justify-center text-center p-4 z-10 pointer-events-none">
+            <div id="cutscene-big-icon" class="text-5xl mb-2 animate-bounce">⚡</div>
+            <h4 id="cutscene-headline" class="text-base font-bold font-mono text-white drop-shadow">THE CORS WALL SHATTERED!</h4>
+            <p id="cutscene-subtext" class="text-xs font-mono text-teal-300 max-w-md mt-1 drop-shadow">Leviathan disintegrated into clean 200 OK data streams</p>
+          </div>
+        </div>
+
+        <!-- Narration Story Text -->
+        <div class="p-2.5 bg-slate-950/80 rounded-lg border border-slate-800 text-[11px] font-mono text-slate-300 leading-relaxed flex items-center justify-between gap-2">
+          <span id="cutscene-narrative-text">Audio caster narration initialized...</span>
+          <button id="btn-replay-cutscene-audio" title="Replay voice narration" class="px-2 py-1 rounded bg-slate-800 hover:bg-slate-700 text-teal-300 border border-slate-700 text-[10px] shrink-0 font-mono">
+            🔊 Replay Voice
+          </button>
+        </div>
+
+        <!-- Close / Resume Button -->
+        <button id="btn-close-cutscene" class="w-full py-2.5 px-4 rounded-xl bg-gradient-to-r from-teal-500 to-violet-600 hover:from-teal-400 hover:to-violet-500 text-white font-mono font-bold text-xs uppercase transition active:scale-95 shadow-lg">
+          CONTINUE HACKATHON
+        </button>
+      </div>
+    </div>
+
+    <!-- MODAL: DIFFICULTY LEVEL SELECTOR -->
+    <div id="difficulty-modal" class="fixed inset-0 z-50 bg-black/85 backdrop-blur-md hidden items-center justify-center p-4">
+      <div class="bg-slate-900 border border-slate-700 max-w-3xl w-full rounded-2xl p-5 lg:p-6 shadow-2xl relative flex flex-col gap-4">
+        <!-- Top Banner -->
+        <div class="flex items-start justify-between border-b border-slate-800 pb-3">
+          <div>
+            <div class="flex items-center gap-2">
+              <span class="text-xl">⚙️</span>
+              <h3 class="text-base font-bold font-mono text-white tracking-wide">CHOOSE SPRINT DIFFICULTY</h3>
+            </div>
+            <p class="text-[11px] text-slate-400 font-mono mt-0.5">Select your hackathon sprint intensity. Modifies clock countdown, boss thresholds, starting stamina, crash damage, and synergy math.</p>
+          </div>
+          <button id="btn-close-difficulty-modal" class="text-slate-400 hover:text-white p-1 text-sm font-mono cursor-pointer transition" title="Close">✕</button>
+        </div>
+
+        <!-- 3 Difficulty Cards -->
+        <div class="grid grid-cols-1 md:grid-cols-3 gap-3">
+          <!-- CASUAL (Easy) -->
+          <div data-diff-id="casual" class="diff-option-card bg-slate-950/70 border border-teal-500/40 hover:border-teal-400 rounded-xl p-3.5 flex flex-col justify-between transition-all cursor-pointer group hover:shadow-lg hover:shadow-teal-950/50 relative overflow-hidden">
+            <div class="absolute top-0 right-0 px-2 py-0.5 bg-teal-500/20 text-teal-300 font-mono text-[9px] font-bold rounded-bl-lg border-b border-l border-teal-500/40">
+              EASY
+            </div>
+            <div>
+              <div class="flex items-center gap-2 mb-2">
+                <span class="text-xl">🟢</span>
+                <span class="font-mono font-bold text-teal-300 text-sm">CASUAL</span>
+              </div>
+              <p class="text-[10px] text-slate-400 font-mono leading-relaxed mb-3">
+                Relaxed 72-hour soft timer for exploring combos. Forgiving crash damage and amplified synergy multipliers.
+              </p>
+              <div class="space-y-1.5 font-mono text-[10px] bg-slate-900/60 p-2 rounded-lg border border-slate-800/80">
+                <div class="flex justify-between text-slate-300">
+                  <span class="text-slate-400">Clock Duration:</span>
+                  <span class="text-teal-300 font-bold">72 Hours</span>
+                </div>
+                <div class="flex justify-between text-slate-300">
+                  <span class="text-slate-400">Starting Stamina:</span>
+                  <span class="text-teal-300 font-bold">120 NRG</span>
+                </div>
+                <div class="flex justify-between text-slate-300">
+                  <span class="text-slate-400">Boss Thresholds:</span>
+                  <span class="text-teal-300 font-bold">-15% Req</span>
+                </div>
+                <div class="flex justify-between text-slate-300">
+                  <span class="text-slate-400">Crash Penalty:</span>
+                  <span class="text-teal-300 font-bold">-3h / -10 NRG</span>
+                </div>
+                <div class="flex justify-between text-slate-300">
+                  <span class="text-slate-400">Synergy Scaling:</span>
+                  <span class="text-teal-300 font-bold">+20% Boosted</span>
+                </div>
+              </div>
+            </div>
+            <button data-diff-btn="casual" class="btn-select-diff mt-3.5 w-full py-2 rounded-lg bg-teal-500/20 group-hover:bg-teal-500 group-hover:text-slate-950 text-teal-300 font-mono font-bold text-xs transition border border-teal-500/40 shadow-sm">
+              START CASUAL (72H)
+            </button>
+          </div>
+
+          <!-- STANDARD (Normal) -->
+          <div data-diff-id="standard" class="diff-option-card bg-slate-950/70 border border-violet-500/40 hover:border-violet-400 rounded-xl p-3.5 flex flex-col justify-between transition-all cursor-pointer group hover:shadow-lg hover:shadow-violet-950/50 relative overflow-hidden">
+            <div class="absolute top-0 right-0 px-2 py-0.5 bg-violet-500/20 text-violet-300 font-mono text-[9px] font-bold rounded-bl-lg border-b border-l border-violet-500/40">
+              NORMAL
+            </div>
+            <div>
+              <div class="flex items-center gap-2 mb-2">
+                <span class="text-xl">🟣</span>
+                <span class="font-mono font-bold text-violet-300 text-sm">STANDARD</span>
+              </div>
+              <p class="text-[10px] text-slate-400 font-mono leading-relaxed mb-3">
+                Authentic 48-hour collegiate hackathon sprint with standard boss metrics and balanced team math.
+              </p>
+              <div class="space-y-1.5 font-mono text-[10px] bg-slate-900/60 p-2 rounded-lg border border-slate-800/80">
+                <div class="flex justify-between text-slate-300">
+                  <span class="text-slate-400">Clock Duration:</span>
+                  <span class="text-violet-300 font-bold">48 Hours</span>
+                </div>
+                <div class="flex justify-between text-slate-300">
+                  <span class="text-slate-400">Starting Stamina:</span>
+                  <span class="text-violet-300 font-bold">100 NRG</span>
+                </div>
+                <div class="flex justify-between text-slate-300">
+                  <span class="text-slate-400">Boss Thresholds:</span>
+                  <span class="text-violet-300 font-bold">1.0x (Standard)</span>
+                </div>
+                <div class="flex justify-between text-slate-300">
+                  <span class="text-slate-400">Crash Penalty:</span>
+                  <span class="text-violet-300 font-bold">-6h / -20 NRG</span>
+                </div>
+                <div class="flex justify-between text-slate-300">
+                  <span class="text-slate-400">Synergy Scaling:</span>
+                  <span class="text-violet-300 font-bold">1.0x (Balanced)</span>
+                </div>
+              </div>
+            </div>
+            <button data-diff-btn="standard" class="btn-select-diff mt-3.5 w-full py-2 rounded-lg bg-violet-500/20 group-hover:bg-violet-500 group-hover:text-white text-violet-300 font-mono font-bold text-xs transition border border-violet-500/40 shadow-sm">
+              START STANDARD (48H)
+            </button>
+          </div>
+
+          <!-- HARDCORE (Nightmare) -->
+          <div data-diff-id="hardcore" class="diff-option-card bg-slate-950/70 border border-rose-500/40 hover:border-rose-400 rounded-xl p-3.5 flex flex-col justify-between transition-all cursor-pointer group hover:shadow-lg hover:shadow-rose-950/50 relative overflow-hidden">
+            <div class="absolute top-0 right-0 px-2 py-0.5 bg-rose-500/20 text-rose-300 font-mono text-[9px] font-bold rounded-bl-lg border-b border-l border-rose-500/40">
+              NIGHTMARE
+            </div>
+            <div>
+              <div class="flex items-center gap-2 mb-2">
+                <span class="text-xl">🔴</span>
+                <span class="font-mono font-bold text-rose-300 text-sm">HARDCORE</span>
+              </div>
+              <p class="text-[10px] text-slate-400 font-mono leading-relaxed mb-3">
+                High-stakes 24h sprint! Punishing deploy wipeouts, +25% aggressive boss thresholds, and tighter synergy math.
+              </p>
+              <div class="space-y-1.5 font-mono text-[10px] bg-slate-900/60 p-2 rounded-lg border border-slate-800/80">
+                <div class="flex justify-between text-slate-300">
+                  <span class="text-slate-400">Clock Duration:</span>
+                  <span class="text-rose-400 font-bold">24 Hours</span>
+                </div>
+                <div class="flex justify-between text-slate-300">
+                  <span class="text-slate-400">Starting Stamina:</span>
+                  <span class="text-rose-400 font-bold">75 NRG</span>
+                </div>
+                <div class="flex justify-between text-slate-300">
+                  <span class="text-slate-400">Boss Thresholds:</span>
+                  <span class="text-rose-400 font-bold">+25% Aggressive</span>
+                </div>
+                <div class="flex justify-between text-slate-300">
+                  <span class="text-slate-400">Crash Penalty:</span>
+                  <span class="text-rose-400 font-bold">-10h / -30 NRG</span>
+                </div>
+                <div class="flex justify-between text-slate-300">
+                  <span class="text-slate-400">Synergy Scaling:</span>
+                  <span class="text-rose-400 font-bold">0.75x (Stricter)</span>
+                </div>
+              </div>
+            </div>
+            <button data-diff-btn="hardcore" class="btn-select-diff mt-3.5 w-full py-2 rounded-lg bg-rose-500/20 group-hover:bg-rose-500 group-hover:text-white text-rose-300 font-mono font-bold text-xs transition border border-rose-500/40 shadow-sm">
+              START HARDCORE (24H)
+            </button>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- MODAL: 'COFFEE RUN' SIDE QUEST CHALLENGE -->
+    <div id="coffee-run-modal" class="fixed inset-0 z-50 bg-black/85 backdrop-blur-md hidden items-center justify-center p-4 select-none">
+      <div class="bg-slate-900 border border-amber-500/50 max-w-md w-full rounded-2xl p-5 lg:p-6 shadow-2xl relative flex flex-col gap-4 overflow-hidden">
+        <!-- Ambient Glow Decorator -->
+        <div class="absolute -top-16 -right-16 w-36 h-36 bg-amber-500/10 rounded-full blur-2xl pointer-events-none"></div>
+
+        <!-- Header -->
+        <div class="flex items-start justify-between border-b border-slate-800 pb-3">
+          <div class="flex items-center gap-2.5">
+            <div class="w-10 h-10 rounded-xl bg-gradient-to-br from-amber-500/30 to-amber-900/50 border border-amber-500/40 flex items-center justify-center text-2xl shadow-inner">
+              ☕
+            </div>
+            <div>
+              <div class="flex items-center gap-1.5">
+                <h3 class="text-sm font-bold font-mono text-white tracking-wide">COFFEE RUN SIDE QUEST!</h3>
+                <span class="px-1.5 py-0.2 rounded bg-amber-500/20 text-amber-300 border border-amber-500/40 text-[9px] font-mono font-bold uppercase">5-Min Event</span>
+              </div>
+              <p class="text-[10px] text-slate-400 font-mono mt-0.5">Quick click-reaction reflex test: Snag all espresso shots before they go cold!</p>
+            </div>
+          </div>
+          <button id="btn-close-coffee-modal" class="text-slate-400 hover:text-white p-1 text-sm font-mono cursor-pointer transition" title="Dismiss Side Quest">✕</button>
+        </div>
+
+        <!-- Reward Banner -->
+        <div class="bg-amber-950/50 border border-amber-500/30 rounded-xl p-2.5 flex items-center justify-between font-mono text-[11px]">
+          <span class="text-amber-300 font-bold flex items-center gap-1">
+            <span>⚡ REWARD:</span>
+            <span>+10% Team Velocity Boost (2 Mins)</span>
+          </span>
+          <span id="coffee-timer-countdown" class="px-2 py-0.5 rounded bg-amber-500/20 text-amber-200 border border-amber-500/40 font-extrabold text-xs">
+            10.0s
+          </span>
+        </div>
+
+        <!-- Challenge Instructions & Progress Counter -->
+        <div class="flex items-center justify-between text-xs font-mono">
+          <span class="text-slate-300">Click the hopping espresso mugs:</span>
+          <span class="text-teal-300 font-bold">
+            <span id="coffee-score-count">0</span> / <span id="coffee-target-count">5</span> Shots
+          </span>
+        </div>
+
+        <!-- Challenge Interactive Tap Arena -->
+        <div id="coffee-arena" class="relative w-full h-56 bg-slate-950 rounded-xl border border-slate-800 overflow-hidden cursor-crosshair shadow-inner">
+          <!-- Ambient Grid Background -->
+          <div class="absolute inset-0 bg-[radial-gradient(#334155_1px,transparent_1px)] [background-size:16px_16px] opacity-40"></div>
+          <div id="coffee-arena-target" class="absolute cursor-pointer transition-all duration-150 transform hover:scale-110 active:scale-90 select-none">
+            <!-- Dynamically placed by JS -->
+          </div>
+        </div>
+
+        <!-- Bottom Status / Result Banner -->
+        <div id="coffee-result-banner" class="hidden p-2.5 rounded-xl font-mono text-center text-xs font-bold transition-all">
+          <!-- Text dynamically inserted -->
+        </div>
+
+        <!-- Control Action Footer -->
+        <div class="flex items-center justify-between gap-2 pt-1 border-t border-slate-800/80">
+          <span class="text-[10px] font-mono text-slate-500">Auto-triggers every 5 minutes during sprint</span>
+          <button id="btn-coffee-give-up" class="px-3 py-1.5 rounded-lg bg-slate-800 hover:bg-slate-700 text-slate-300 font-mono text-xs transition">
+            Skip
+          </button>
+        </div>
+      </div>
+    </div>
+
+    <!-- MODAL: VICTORY / DEFEAT & SUBMISSION HASH -->
+    <div id="game-over-modal" class="fixed inset-0 z-50 bg-black/85 backdrop-blur-md hidden items-center justify-center p-4">
+      <div id="modal-card" class="bg-slate-900 border border-slate-700 max-w-xl w-full rounded-2xl p-5 lg:p-6 shadow-2xl relative overflow-hidden flex flex-col gap-3.5">
+        <!-- Top Banner -->
+        <div class="flex items-center justify-between border-b border-slate-800 pb-3">
+          <div class="flex items-center gap-2">
+            <span id="modal-badge-icon" class="text-2xl">🏆</span>
+            <div>
+              <h3 id="modal-title" class="text-base font-bold font-mono text-white tracking-tight">HACKATHON GRAND VICTORY</h3>
+              <p id="modal-subtitle" class="text-[10px] text-slate-400 font-mono">All 3 Milestone Phases Cleared Successfully</p>
+            </div>
+          </div>
+          <div class="flex items-center gap-1.5">
+            <span id="modal-diff-badge" class="px-2 py-0.5 rounded text-[10px] font-mono font-bold bg-violet-950 text-violet-300 border border-violet-500/50">
+              STANDARD (48H)
+            </span>
+            <span id="modal-rank-badge" class="px-2.5 py-1 rounded bg-teal-500/20 text-teal-300 border border-teal-500/40 text-xs font-mono font-bold">
+              RANK: S
+            </span>
+          </div>
+        </div>
+
+        <!-- Metrics Grid -->
+        <div class="grid grid-cols-2 sm:grid-cols-4 gap-2 text-center font-mono">
+          <div class="bg-slate-800/60 p-2 rounded-lg border border-slate-700/50">
+            <div class="text-[9px] text-slate-400 uppercase">Final XP</div>
+            <div id="modal-stat-xp" class="text-sm font-extrabold text-amber-400">1,450</div>
+          </div>
+          <div class="bg-slate-800/60 p-2 rounded-lg border border-slate-700/50">
+            <div class="text-[9px] text-slate-400 uppercase">Time Remaining</div>
+            <div id="modal-stat-time" class="text-sm font-extrabold text-teal-300">18h 40m</div>
+          </div>
+          <div class="bg-slate-800/60 p-2 rounded-lg border border-slate-700/50">
+            <div class="text-[9px] text-slate-400 uppercase">Phases Cleared</div>
+            <div id="modal-stat-phase" class="text-sm font-extrabold text-violet-300">3 / 3</div>
+          </div>
+          <div class="bg-slate-800/60 p-2 rounded-lg border border-slate-700/50">
+            <div class="text-[9px] text-slate-400 uppercase">Active Synergies</div>
+            <div id="modal-stat-synergies" class="text-sm font-extrabold text-teal-300">3 Combos</div>
+          </div>
+        </div>
+
+        <!-- Verification Hash & Markdown Block -->
+        <div class="space-y-1.5">
+          <div class="flex items-center justify-between text-xs font-mono text-slate-400">
+            <span>Cryptographic Submission Proof:</span>
+            <span id="modal-hash-text" class="text-[10px] text-teal-400 font-semibold">0x7F2B...C48D</span>
+          </div>
+          <div class="relative">
+            <pre id="modal-markdown-preview" class="bg-slate-950 p-2.5 rounded-lg border border-slate-800 text-[10px] font-mono text-slate-300 overflow-x-auto max-h-32 select-all"></pre>
+          </div>
+        </div>
+
+        <!-- Action Buttons -->
+        <div class="flex flex-col sm:flex-row items-center gap-2 pt-1">
+          <button id="btn-copy-hash" class="w-full sm:w-1/3 py-2 px-3 rounded-xl bg-teal-500 hover:bg-teal-400 text-slate-950 font-mono font-bold text-xs flex items-center justify-center gap-1.5 shadow-lg transition active:scale-95">
+            <span>📋</span>
+            <span id="copy-btn-label">COPY HASH</span>
+          </button>
+          <button id="btn-modal-change-diff" class="w-full sm:w-1/3 py-2 px-3 rounded-xl bg-slate-800 hover:bg-slate-700 text-teal-300 font-mono font-bold text-xs flex items-center justify-center gap-1.5 border border-slate-700 transition active:scale-95">
+            <span>⚙️</span>
+            <span>CHANGE DIFFICULTY</span>
+          </button>
+          <button id="btn-modal-restart" class="w-full sm:w-1/3 py-2 px-3 rounded-xl bg-gradient-to-r from-violet-600 to-indigo-600 hover:from-violet-500 hover:to-indigo-500 text-white font-mono font-bold text-xs flex items-center justify-center gap-1.5 shadow-md transition active:scale-95">
+            <span>🚀</span>
+            <span>RETRY RUN</span>
+          </button>
+        </div>
+      </div>
+    </div>
+
+    <!-- TOAST NOTIFICATION CONTAINER -->
+    <div id="toast-container" class="fixed bottom-5 right-5 z-50 pointer-events-none flex flex-col gap-2"></div>
+
+    <!-- PURE VANILLA ES6 GAME ENGINE & AI ASYNC WRAPPERS -->
+    <script type="module">
+      /**
+       * GUILDMASTERS: HACKATHON EDITION
+       * Core Game Engine, AI Studio API Wrappers & Tactical Sim
+       */
+
+      // --- SOUND SYNTHESIZER & WEB AUDIO ENGINE ---
+      class SoundEngine {
+        constructor() {
+          this.ctx = null;
+          this.muted = localStorage.getItem('gm_audio_muted') === 'true';
+        }
+        init() {
+          if (!this.ctx && (window.AudioContext || window.webkitAudioContext)) {
+            const AudioCtx = window.AudioContext || window.webkitAudioContext;
+            this.ctx = new AudioCtx();
+          }
+          if (this.ctx && this.ctx.state === 'suspended') {
+            this.ctx.resume();
+          }
+        }
+        playTone(freq, type = 'sine', duration = 0.1, gainVal = 0.1) {
+          if (this.muted) return;
+          try {
+            this.init();
+            if (!this.ctx) return;
+            const osc = this.ctx.createOscillator();
+            const gain = this.ctx.createGain();
+            osc.type = type;
+            osc.frequency.setValueAtTime(freq, this.ctx.currentTime);
+            gain.gain.setValueAtTime(gainVal, this.ctx.currentTime);
+            gain.gain.exponentialRampToValueAtTime(0.0001, this.ctx.currentTime + duration);
+            osc.connect(gain);
+            gain.connect(this.ctx.destination);
+            osc.start();
+            osc.stop(this.ctx.currentTime + duration);
+          } catch (e) {
+            // Audio policy fallback
+          }
+        }
+        blip() { this.playTone(680, 'sine', 0.08, 0.06); }
+        click() { this.playTone(420, 'triangle', 0.05, 0.07); }
+        draft() {
+          this.playTone(520, 'sine', 0.08, 0.08);
+          setTimeout(() => this.playTone(780, 'sine', 0.1, 0.08), 70);
+        }
+        bench() {
+          this.playTone(480, 'sine', 0.07, 0.07);
+          setTimeout(() => this.playTone(320, 'sine', 0.09, 0.07), 60);
+        }
+        synergy() {
+          this.playTone(587.33, 'triangle', 0.12, 0.09);
+          setTimeout(() => this.playTone(739.99, 'triangle', 0.14, 0.09), 80);
+          setTimeout(() => this.playTone(880.00, 'triangle', 0.18, 0.1), 160);
+        }
+        victory() {
+          const notes = [523.25, 659.25, 783.99, 1046.50];
+          notes.forEach((freq, idx) => {
+            setTimeout(() => this.playTone(freq, 'triangle', 0.25, 0.12), idx * 100);
+          });
+        }
+        defeat() {
+          this.playTone(280, 'sawtooth', 0.18, 0.1);
+          setTimeout(() => this.playTone(190, 'sawtooth', 0.35, 0.12), 140);
+        }
+        toggleMute() {
+          this.muted = !this.muted;
+          localStorage.setItem('gm_audio_muted', this.muted);
+          return this.muted;
+        }
+        // Play base64 audio returned from Gemini Voice / TTS endpoint
+        playBase64(base64Audio) {
+          if (this.muted) return;
+          try {
+            const snd = new Audio(`data:audio/wav;base64,${base64Audio}`);
+            snd.play().catch(() => {});
+          } catch (e) {
+            console.error("Audio playback error:", e);
+          }
+        }
+      }
+
+      const audio = new SoundEngine();
+
+      // --- STRUCTURED ASYNC AI WRAPPER (GEMINI / IMAGEN / SEARCH / VEO) ---
+      const callAI = {
+        voiceEnabled: true,
+        aiConfigured: false,
+
+        async checkStatus() {
+          try {
+            const res = await fetch('/api/ai/status');
+            const data = await res.json();
+            this.aiConfigured = Boolean(data.configured);
+            return data;
+          } catch (e) {
+            this.aiConfigured = false;
+            return {
+              configured: false,
+              message: "Offline mode active (Procedural fallbacks enabled)",
+            };
+          }
+        },
+
+        async roastRoster(roster, boss, timeRemaining, guildXP, stamina, message = "") {
+          try {
+            const res = await fetch('/api/ai/roast', {
+              method: 'POST',
+              headers: { 'Content-Type': 'application/json' },
+              body: JSON.stringify({ roster, boss, timeRemaining, guildXP, stamina, message })
+            });
+            return await res.json();
+          } catch (e) {
+            return {
+              success: true,
+              fallback: true,
+              text: "3AM Standup Note: Pair your roles wisely! A high-debug NightOwl or Database Guru is crucial to surviving production crashes.",
+            };
+          }
+        },
+
+        async groundBoss(bossPhase, bossName) {
+          try {
+            const res = await fetch('/api/ai/search-boss', {
+              method: 'POST',
+              headers: { 'Content-Type': 'application/json' },
+              body: JSON.stringify({ bossPhase, bossName })
+            });
+            return await res.json();
+          } catch (e) {
+            return {
+              success: true,
+              fallback: true,
+              groundedFlavor: "Breaking telemetry: Upstream authorization token expiry and CORS preflight headers rejected all requests during peak traffic!",
+              sources: []
+            };
+          }
+        },
+
+        async generatePortrait(student) {
+          try {
+            const res = await fetch('/api/ai/portrait', {
+              method: 'POST',
+              headers: { 'Content-Type': 'application/json' },
+              body: JSON.stringify({
+                name: student.name,
+                title: student.title,
+                roleTag: student.roleTag,
+                synergyTag: student.synergyTag
+              })
+            });
+            return await res.json();
+          } catch (e) {
+            return { success: false, fallback: true };
+          }
+        },
+
+        async narrateText(text) {
+          if (!this.voiceEnabled || audio.muted) return;
+          try {
+            const res = await fetch('/api/ai/narrate', {
+              method: 'POST',
+              headers: { 'Content-Type': 'application/json' },
+              body: JSON.stringify({ text, voice: 'Kore' })
+            });
+            const data = await res.json();
+            if (data.success && data.audio) {
+              audio.playBase64(data.audio);
+              return;
+            }
+          } catch (e) {
+            // fallback below
+          }
+
+          // Fallback: Web Speech API synthesis
+          if ('speechSynthesis' in window) {
+            window.speechSynthesis.cancel();
+            const cleanText = text.replace(/<[^>]*>?/gm, '');
+            const utter = new SpeechSynthesisUtterance(cleanText);
+            utter.rate = 1.05;
+            utter.pitch = 1.1;
+            window.speechSynthesis.speak(utter);
+          }
+        },
+
+        async triggerCutscene(bossName, phase, outcome) {
+          try {
+            const res = await fetch('/api/ai/cutscene', {
+              method: 'POST',
+              headers: { 'Content-Type': 'application/json' },
+              body: JSON.stringify({ bossName, phase, outcome })
+            });
+            return await res.json();
+          } catch (e) {
+            return {
+              success: true,
+              fallback: true,
+              prompt: `Cinematic particle breakdown of ${bossName}`,
+            };
+          }
+        }
+      };
+
+      // --- PROCEDURAL SVG AVATAR GENERATOR (FALLBACK) ---
+      function generateCyberAvatarSVG(name, synergyTag) {
+        const hash = name.split('').reduce((acc, char) => acc + char.charCodeAt(0), 0);
+        const hue = hash % 360;
+        const visorColors = ['#14B8A6', '#8B5CF6', '#F59E0B', '#06B6D4', '#EC4899'];
+        const visorColor = visorColors[hash % visorColors.length];
+
+        return `
+          <svg viewBox="0 0 100 100" class="w-full h-full rounded-lg bg-slate-950 border border-slate-800" xmlns="http://www.w3.org/2000/svg">
+            <defs>
+              <linearGradient id="grad_${hash}" x1="0%" y1="0%" x2="100%" y2="100%">
+                <stop offset="0%" stop-color="hsl(${hue}, 70%, 20%)" />
+                <stop offset="100%" stop-color="#0A0F1D" />
+              </linearGradient>
+            </defs>
+            <rect width="100" height="100" fill="url(#grad_${hash})" />
+            <!-- Cyber Hoodie -->
+            <path d="M 20 100 C 25 70, 75 70, 80 100 Z" fill="#1E293B" stroke="#334155" stroke-width="1.5" />
+            <!-- Face -->
+            <ellipse cx="50" cy="52" rx="22" ry="24" fill="#E2E8F0" />
+            <!-- 3AM Eyebags -->
+            <path d="M 38 52 Q 44 57 48 52" stroke="#64748B" stroke-width="1.5" fill="none" opacity="0.8" />
+            <path d="M 52 52 Q 56 57 62 52" stroke="#64748B" stroke-width="1.5" fill="none" opacity="0.8" />
+            <!-- Cyber Visor / Neon Glasses -->
+            <rect x="34" y="44" width="32" height="9" rx="3" fill="${visorColor}" opacity="0.9" />
+            <line x1="32" y1="48" x2="68" y2="48" stroke="#FFFFFF" stroke-width="1.2" opacity="0.8" />
+            <!-- Headset -->
+            <path d="M 26 48 Q 50 20 74 48" stroke="${visorColor}" stroke-width="2.5" fill="none" />
+            <rect x="23" y="44" width="6" height="12" rx="2" fill="#0F172A" stroke="${visorColor}" stroke-width="1" />
+            <rect x="71" y="44" width="6" height="12" rx="2" fill="#0F172A" stroke="${visorColor}" stroke-width="1" />
+            <!-- Synergy Glow Tag Indicator -->
+            <circle cx="50" cy="85" r="4" fill="${visorColor}" />
+          </svg>
+        `;
+      }
+
+      // --- PROCEDURAL STUDENT GENERATOR POOL & DATA ---
+      const FIRST_NAMES = [
+        "Aarav", "Elena", "Marcus", "Kavya", "Leo", "Priya", "Devon", "Aoi",
+        "Sofia", "Tariq", "Chen", "Chloe", "Zane", "Mira", "Rohan", "Hanna",
+        "Dante", "Siddharth", "Ingrid", "Jasper", "Zara", "Vikram", "Nina", "Lucas"
+      ];
+
+      const ROLES = [
+        { title: "Full-Stack ML Engineer", roleTag: "ML Engineer", synergyTag: "Pythonista", icon: "🧠", baseVel: 70, baseDbg: 85, baseUix: 50 },
+        { title: "UI/UX & Design Systems", roleTag: "UI/UX", synergyTag: "CSS Wizard", icon: "🎨", baseVel: 75, baseDbg: 45, baseUix: 95 },
+        { title: "API & Distributed Systems", roleTag: "Backend", synergyTag: "Database Guru", icon: "🗄️", baseVel: 65, baseDbg: 92, baseUix: 35 },
+        { title: "Frontend Performance Wizard", roleTag: "Frontend", synergyTag: "CSS Wizard", icon: "💻", baseVel: 88, baseDbg: 65, baseUix: 80 },
+        { title: "Late-Night Code Sprinter", roleTag: "Full-Stack", synergyTag: "NightOwl", icon: "🦉", baseVel: 95, baseDbg: 70, baseUix: 60 },
+        { title: "Cloud & Kubernetes Ninja", roleTag: "DevOps", synergyTag: "DevOps Ninja", icon: "☁️", baseVel: 72, baseDbg: 90, baseUix: 35 },
+        { title: "Smart Contract & Auth Auditor", roleTag: "Security", synergyTag: "Security Auditor", icon: "🛡️", baseVel: 65, baseDbg: 95, baseUix: 40 },
+        { title: "Data Scientist & Model Tuner", roleTag: "ML Engineer", synergyTag: "Pythonista", icon: "📊", baseVel: 68, baseDbg: 86, baseUix: 55 },
+        { title: "Hackathon Night Researcher", roleTag: "Backend", synergyTag: "NightOwl", icon: "🌙", baseVel: 85, baseDbg: 78, baseUix: 45 },
+        { title: "Pitch Virtuoso & Product Lead", roleTag: "Product", synergyTag: "CSS Wizard", icon: "🎙️", baseVel: 75, baseDbg: 50, baseUix: 90 }
+      ];
+
+      const FLAVOR_QUOTES = [
+        "Sleep is optional, demo day is mandatory.",
+        "Refactored 400 lines into a one-liner regex.",
+        "Centered a div on the very first try.",
+        "Drinks espresso straight from the portafilter.",
+        "Can write PyTorch forward passes blindfolded.",
+        "Knows every Docker edge-case in existence.",
+        "Crafts Figma micro-animations at 3 AM.",
+        "Found 6 vulnerabilities during breakfast."
+      ];
+
+      // Boss Milestone Definitions
+      const BOSS_PHASES = [
+        {
+          phase: 1,
+          name: "The CORS & Auth Wall",
+          desc: "Browser pre-flight blocked your JWT token. Postman works, but Chrome refuses to cooperate under pressure.",
+          avatar: "🧱",
+          threshold: 220,
+          flavorLoss: "CORS preflight timeout! Team panicked fixing headers.",
+          rewardXP: 300,
+          rewardStamina: 25
+        },
+        {
+          phase: 2,
+          name: "Schema Migration Nightmare",
+          desc: "A dropped column in production wiped the staging DB 20 minutes before judge pre-screening.",
+          avatar: "💥",
+          threshold: 340,
+          flavorLoss: "Broken foreign keys! The server crashed on null values.",
+          rewardXP: 450,
+          rewardStamina: 30
+        },
+        {
+          phase: 3,
+          name: "Demo Video Render & VC Pitch Panic",
+          desc: "Premiere crashed at 99%. Live demo threw a 500 error in front of tier-1 angel investors.",
+          avatar: "🚨",
+          threshold: 480,
+          flavorLoss: "Video frame rate stuttered and server crashed live!",
+          rewardXP: 700,
+          rewardStamina: 40
+        }
+      ];
+
+      // --- SPRINT DIFFICULTY CONFIGURATIONS ---
+      const DIFFICULTY_CONFIGS = {
+        casual: {
+          id: 'casual',
+          label: 'CASUAL (72H)',
+          shortLabel: 'CASUAL',
+          difficultyTitle: 'Easy',
+          hours: 72,
+          startingStamina: 120,
+          maxStamina: 120,
+          thresholdMultiplier: 0.85, // -15% Boss Thresholds
+          synergyMultiplier: 1.20,   // +20% Synergy Boost
+          lossHoursPenalty: 3 * 3600,
+          lossStaminaPenalty: 10,
+          badgeClass: 'bg-teal-950/80 text-teal-300 border-teal-500/50',
+          dotColor: 'bg-teal-400',
+          icon: '🟢'
+        },
+        standard: {
+          id: 'standard',
+          label: 'STANDARD (48H)',
+          shortLabel: 'STANDARD',
+          difficultyTitle: 'Normal',
+          hours: 48,
+          startingStamina: 100,
+          maxStamina: 100,
+          thresholdMultiplier: 1.0,  // Standard 1.0x
+          synergyMultiplier: 1.0,    // Standard 1.0x
+          lossHoursPenalty: 6 * 3600,
+          lossStaminaPenalty: 20,
+          badgeClass: 'bg-violet-950/80 text-violet-300 border-violet-500/50',
+          dotColor: 'bg-violet-400',
+          icon: '🟣'
+        },
+        hardcore: {
+          id: 'hardcore',
+          label: 'HARDCORE (24H)',
+          shortLabel: 'HARDCORE',
+          difficultyTitle: 'Nightmare',
+          hours: 24,
+          startingStamina: 75,
+          maxStamina: 75,
+          thresholdMultiplier: 1.25, // +25% Aggressive Boss Thresholds
+          synergyMultiplier: 0.75,   // 0.75x Stricter Synergy Math
+          lossHoursPenalty: 10 * 3600,
+          lossStaminaPenalty: 30,
+          badgeClass: 'bg-rose-950/80 text-rose-300 border-rose-500/50',
+          dotColor: 'bg-rose-400',
+          icon: '🔴'
+        }
+      };
+
+      // Helper to compute boss target power based on active difficulty
+      function getBossTargetPower(boss) {
+        if (!boss) return 0;
+        const config = DIFFICULTY_CONFIGS[state.difficulty] || DIFFICULTY_CONFIGS.standard;
+        return Math.round(boss.threshold * config.thresholdMultiplier);
+      }
+
+      // --- GAME STATE ---
+      let state = {
+        difficulty: 'standard',
+        secondsRemaining: 48 * 3600,
+        clockSpeed: 1,
+        clockInterval: null,
+        guildXP: 0,
+        stamina: 100,
+        maxStamina: 100,
+        phaseIndex: 0,
+        roster: [null, null, null, null],
+        draftPool: [],
+        activeSynergies: [],
+        activeSlotIndices: new Set(),
+        adjacentLinks: [],
+        totalPower: 0,
+        isGameOver: false,
+        groundedBossFlavor: "",
+        groundingSources: [],
+        mvpHero: null,
+        // Coffee Run Side Quest State
+        coffeeRunTimer: 0,            // Elapsed time toward 5-min (300s) trigger
+        coffeeRunIntervalSecs: 300,   // Triggers every 5 minutes (300 seconds)
+        coffeeRunAvailable: false,    // Alert is waiting for user response
+        coffeeBoostActive: false,     // +10% velocity boost active flag
+        coffeeBoostSecondsLeft: 0,    // Duration of active boost (120s)
+        coffeeBoostPercent: 0.10      // +10% Velocity Boost
+      };
+
+      const rnd = (min, max) => Math.floor(Math.random() * (max - min + 1)) + min;
+
+      // Generate a procedural student profile
+      let studentIdCounter = 1;
+      function generateStudentCard() {
+        const name = FIRST_NAMES[rnd(0, FIRST_NAMES.length - 1)];
+        const roleData = ROLES[rnd(0, ROLES.length - 1)];
+        const flavor = FLAVOR_QUOTES[rnd(0, FLAVOR_QUOTES.length - 1)];
+
+        const velocity = Math.min(99, Math.max(25, roleData.baseVel + rnd(-12, 14)));
+        const debug = Math.min(99, Math.max(25, roleData.baseDbg + rnd(-12, 14)));
+        const uix = Math.min(99, Math.max(25, roleData.baseUix + rnd(-12, 14)));
+        const energyCost = rnd(12, 22);
+
+        return {
+          id: `stu_${studentIdCounter++}`,
+          name: name,
+          title: roleData.title,
+          roleTag: roleData.roleTag,
+          synergyTag: roleData.synergyTag,
+          icon: roleData.icon,
+          velocity,
+          debug,
+          uix,
+          energyCost,
+          flavor,
+          aiPortraitUrl: null,
+          loadingPortrait: false
+        };
+      }
+
+      // Procedurally roll 3 candidate cards for the talent pool
+      function rollDraftPool() {
+        state.draftPool = [
+          generateStudentCard(),
+          generateStudentCard(),
+          generateStudentCard()
+        ];
+      }
+
+      // --- SYNERGY EVALUATOR ---
+      function calculateSynergies() {
+        const activeMembers = state.roster.filter(Boolean);
+        const synergies = [];
+        const diffConfig = DIFFICULTY_CONFIGS[state.difficulty] || DIFFICULTY_CONFIGS.standard;
+        const synScale = diffConfig.synergyMultiplier;
+        let multiplier = 1.0;
+
+        const activeSlotIndices = new Set();
+        const adjacentLinks = [];
+
+        // Helper to find slot indices matching criteria
+        const getSlotsWith = (predicate) => {
+          const slots = [];
+          for (let idx = 0; idx < 4; idx++) {
+            if (state.roster[idx] && predicate(state.roster[idx])) {
+              slots.push(idx);
+            }
+          }
+          return slots;
+        };
+
+        // 1. Pythonista + Database Guru
+        const pySlots = getSlotsWith(m => m.synergyTag === "Pythonista");
+        const dbSlots = getSlotsWith(m => m.synergyTag === "Database Guru");
+        if (pySlots.length > 0 && dbSlots.length > 0) {
+          const bonus = 0.25 * synScale;
+          synergies.push({
+            name: "Data Pipeline Harmonic",
+            bonusText: `+${Math.round(bonus * 100)}% Team Power`,
+            multiplier: bonus,
+            color: "text-violet-300 border-violet-500/40 bg-violet-950/60"
+          });
+          multiplier += bonus;
+          pySlots.forEach(s => activeSlotIndices.add(s));
+          dbSlots.forEach(s => activeSlotIndices.add(s));
+        }
+
+        // 2. CSS Wizard + Database Guru / Backend / Pythonista
+        const cssSlots = getSlotsWith(m => m.synergyTag === "CSS Wizard");
+        const backendMatchSlots = getSlotsWith(m => m.synergyTag === "Database Guru" || m.synergyTag === "Pythonista" || m.roleTag === "Backend");
+        if (cssSlots.length > 0 && backendMatchSlots.length > 0) {
+          const bonus = 0.25 * synScale;
+          synergies.push({
+            name: "Fullstack Stack Surge",
+            bonusText: `+${Math.round(bonus * 100)}% Team Power`,
+            multiplier: bonus,
+            color: "text-teal-300 border-teal-500/40 bg-teal-950/60"
+          });
+          multiplier += bonus;
+          cssSlots.forEach(s => activeSlotIndices.add(s));
+          backendMatchSlots.forEach(s => activeSlotIndices.add(s));
+        }
+
+        // 3. NightOwl Pair (2+ Night Owls)
+        const owlSlots = getSlotsWith(m => m.synergyTag === "NightOwl");
+        if (owlSlots.length >= 2) {
+          const bonus = 0.30 * synScale;
+          synergies.push({
+            name: "3 AM Red Bull Euphoria",
+            bonusText: `+${Math.round(bonus * 100)}% Velocity Surge`,
+            multiplier: bonus,
+            color: "text-amber-300 border-amber-500/40 bg-amber-950/60"
+          });
+          multiplier += bonus;
+          owlSlots.forEach(s => activeSlotIndices.add(s));
+        }
+
+        // 4. DevOps Ninja + Security Auditor
+        const devOpsSlots = getSlotsWith(m => m.synergyTag === "DevOps Ninja" || m.roleTag === "DevOps");
+        const secSlots = getSlotsWith(m => m.synergyTag === "Security Auditor" || m.roleTag === "Security");
+        if (devOpsSlots.length > 0 && secSlots.length > 0) {
+          const bonus = 0.20 * synScale;
+          synergies.push({
+            name: "Hardened Infrastructure",
+            bonusText: `+${Math.round(bonus * 100)}% Resilience`,
+            multiplier: bonus,
+            color: "text-indigo-300 border-indigo-500/40 bg-indigo-950/60"
+          });
+          multiplier += bonus;
+          devOpsSlots.forEach(s => activeSlotIndices.add(s));
+          secSlots.forEach(s => activeSlotIndices.add(s));
+        }
+
+        // 5. Adjacent Link Combo
+        let adjacentPairCount = 0;
+        for (let i = 0; i < 3; i++) {
+          const cardA = state.roster[i];
+          const cardB = state.roster[i + 1];
+          if (cardA && cardB) {
+            const isMatch = (
+              (cardA.synergyTag === "CSS Wizard" && cardB.synergyTag === "Database Guru") ||
+              (cardA.synergyTag === "Database Guru" && cardB.synergyTag === "CSS Wizard") ||
+              (cardA.synergyTag === "Pythonista" && cardB.synergyTag === "NightOwl") ||
+              (cardA.synergyTag === "NightOwl" && cardB.synergyTag === "Pythonista") ||
+              cardA.synergyTag === cardB.synergyTag
+            );
+
+            if (isMatch) {
+              adjacentPairCount++;
+              activeSlotIndices.add(i);
+              activeSlotIndices.add(i + 1);
+              adjacentLinks.push({ from: i, to: i + 1, label: `${cardA.synergyTag} ⚡ ${cardB.synergyTag}` });
+            }
+          }
+        }
+
+        if (adjacentPairCount > 0) {
+          const adjBonus = (adjacentPairCount * 0.10) * synScale;
+          synergies.push({
+            name: `Adjacent Pair Synergy (${adjacentPairCount}x)`,
+            bonusText: `+${Math.round(adjBonus * 100)}% Link Bonus`,
+            multiplier: adjBonus,
+            color: "text-rose-300 border-rose-500/40 bg-rose-950/60"
+          });
+          multiplier += adjBonus;
+        }
+
+        // Connect adjacent cards if BOTH are active in synergy combos
+        for (let i = 0; i < 3; i++) {
+          if (state.roster[i] && state.roster[i + 1] && activeSlotIndices.has(i) && activeSlotIndices.has(i + 1)) {
+            if (!adjacentLinks.some(l => l.from === i && l.to === i + 1)) {
+              adjacentLinks.push({ from: i, to: i + 1, label: "Harmonic Conduit" });
+            }
+          }
+        }
+
+        // 6. Quad Roster Harmony
+        if (activeMembers.length === 4) {
+          const bonus = 0.15 * synScale;
+          synergies.push({
+            name: "Quad Roster Harmony",
+            bonusText: `+${Math.round(bonus * 100)}% Fellowship Multiplier`,
+            multiplier: bonus,
+            color: "text-teal-200 border-teal-400/40 bg-teal-950/80"
+          });
+          multiplier += bonus;
+          for (let i = 0; i < 4; i++) activeSlotIndices.add(i);
+          for (let i = 0; i < 3; i++) {
+            if (!adjacentLinks.some(l => l.from === i && l.to === i + 1)) {
+              adjacentLinks.push({ from: i, to: i + 1, label: "Full Fellowship Link" });
+            }
+          }
+        }
+
+        state.activeSynergies = synergies;
+        state.activeSlotIndices = activeSlotIndices;
+        state.adjacentLinks = adjacentLinks;
+
+        // Calculate Total Power (factoring in temporary Coffee Run +10% velocity boost if active)
+        let rawSum = 0;
+        let highestContrib = 0;
+        let mvp = null;
+        const velMultiplier = state.coffeeBoostActive ? (1 + state.coffeeBoostPercent) : 1;
+
+        activeMembers.forEach(hero => {
+          const effectiveVel = Math.round(hero.velocity * velMultiplier);
+          const heroPower = Math.round(effectiveVel * 0.4 + hero.debug * 0.35 + hero.uix * 0.25);
+          rawSum += heroPower;
+          if (heroPower > highestContrib) {
+            highestContrib = heroPower;
+            mvp = hero;
+          }
+        });
+
+        state.totalPower = Math.round(rawSum * multiplier);
+        if (mvp) state.mvpHero = mvp;
+
+        return { synergies, multiplier, totalPower: state.totalPower, activeSlotIndices, adjacentLinks };
+      }
+
+      // --- LOGGING UTILITY ---
+      function logConsole(message, type = 'info') {
+        const box = document.getElementById('console-log-box');
+        if (!box) return;
+        const entry = document.createElement('div');
+        const nowHours = Math.floor(state.secondsRemaining / 3600);
+        const nowMins = Math.floor((state.secondsRemaining % 3600) / 60);
+        const timeStr = `${String(nowHours).padStart(2, '0')}:${String(nowMins).padStart(2, '0')}`;
+
+        let prefixColor = 'text-slate-500';
+        let badge = '[SYS]';
+        if (type === 'synergy') {
+          prefixColor = 'text-violet-400';
+          badge = '[SYN]';
+        } else if (type === 'boss') {
+          prefixColor = 'text-rose-400';
+          badge = '[BOSS]';
+        } else if (type === 'win') {
+          prefixColor = 'text-teal-400 font-bold';
+          badge = '[WIN]';
+        } else if (type === 'ai') {
+          prefixColor = 'text-teal-300';
+          badge = '[AI]';
+        } else if (type === 'warn') {
+          prefixColor = 'text-amber-400';
+          badge = '[WARN]';
+        }
+
+        entry.innerHTML = `<span class="${prefixColor}">${badge}</span> <span class="text-slate-500">${timeStr}</span> ${message}`;
+        box.appendChild(entry);
+        box.scrollTop = box.scrollHeight;
+      }
+
+      // Toast notification helper
+      function showToast(msg, type = 'teal') {
+        const container = document.getElementById('toast-container');
+        if (!container) return;
+        const toast = document.createElement('div');
+
+        let borderClass = 'border-teal-500/40 bg-slate-900 text-teal-300';
+        if (type === 'rose') borderClass = 'border-rose-500/40 bg-slate-900 text-rose-300';
+        if (type === 'violet') borderClass = 'border-violet-500/40 bg-slate-900 text-violet-300';
+        if (type === 'amber') borderClass = 'border-amber-500/40 bg-slate-900 text-amber-300';
+
+        toast.className = `px-3.5 py-2 rounded-lg border shadow-xl text-xs font-mono transition-all transform duration-300 opacity-0 translate-y-2 ${borderClass}`;
+        toast.textContent = msg;
+        container.appendChild(toast);
+
+        requestAnimationFrame(() => {
+          toast.classList.remove('opacity-0', 'translate-y-2');
+        });
+
+        setTimeout(() => {
+          toast.classList.add('opacity-0', 'translate-y-2');
+          setTimeout(() => toast.remove(), 300);
+        }, 2500);
+      }
+
+      // --- RENDER DOM FUNCTIONS ---
+
+      // Render Top HUD
+      function renderHUD() {
+        const hours = Math.floor(state.secondsRemaining / 3600);
+        const mins = Math.floor((state.secondsRemaining % 3600) / 60);
+        const secs = state.secondsRemaining % 60;
+        const clockEl = document.getElementById('hud-clock');
+        if (clockEl) {
+          clockEl.textContent = `${String(hours).padStart(2, '0')}:${String(mins).padStart(2, '0')}:${String(secs).padStart(2, '0')}`;
+          if (hours < 12) {
+            clockEl.className = "text-xs lg:text-sm font-mono font-extrabold text-rose-400 tracking-wider animate-pulse";
+          } else {
+            clockEl.className = "text-xs lg:text-sm font-mono font-extrabold text-teal-300 tracking-wider";
+          }
+        }
+
+        const phaseEl = document.getElementById('hud-phase');
+        if (phaseEl) {
+          phaseEl.textContent = `Phase ${state.phaseIndex + 1}/3`;
+        }
+
+        const diffConfig = DIFFICULTY_CONFIGS[state.difficulty] || DIFFICULTY_CONFIGS.standard;
+        const diffBadge = document.getElementById('hud-difficulty-badge');
+        if (diffBadge) {
+          diffBadge.className = `px-1.5 py-0.5 rounded text-[10px] font-bold ${diffConfig.badgeClass} flex items-center gap-1`;
+          diffBadge.innerHTML = `<span>${diffConfig.icon}</span> ${diffConfig.shortLabel} ${diffConfig.hours}H`;
+        }
+
+        // Pips
+        for (let i = 1; i <= 3; i++) {
+          const pip = document.getElementById(`phase-pip-${i}`);
+          if (pip) {
+            if (i - 1 < state.phaseIndex) {
+              pip.className = "w-2 h-2 rounded-full bg-teal-400";
+            } else if (i - 1 === state.phaseIndex) {
+              pip.className = "w-2 h-2 rounded-full bg-violet-500 ring-2 ring-violet-400/50";
+            } else {
+              pip.className = "w-2 h-2 rounded-full bg-slate-700";
+            }
+          }
+        }
+
+        const xpEl = document.getElementById('hud-xp');
+        if (xpEl) xpEl.textContent = `${state.guildXP.toLocaleString()} PTS`;
+
+        const stamText = document.getElementById('hud-stamina-text');
+        const stamBar = document.getElementById('hud-stamina-bar');
+        if (stamText) stamText.textContent = `${state.stamina}/${state.maxStamina}`;
+        if (stamBar) {
+          const pct = Math.max(0, Math.min(100, (state.stamina / state.maxStamina) * 100));
+          stamBar.style.width = `${pct}%`;
+          if (pct < 25) {
+            stamBar.className = "bg-gradient-to-r from-rose-500 to-rose-400 h-full transition-all duration-300";
+          } else {
+            stamBar.className = "bg-gradient-to-r from-teal-400 to-teal-200 h-full transition-all duration-300";
+          }
+        }
+
+        const audioIcon = document.getElementById('icon-audio');
+        if (audioIcon) {
+          audioIcon.textContent = audio.muted ? '🔇' : '🔊';
+        }
+
+        // Render Coffee Run Side Quest Indicators
+        const alertBtn = document.getElementById('btn-coffee-run-alert');
+        if (alertBtn) {
+          if (state.coffeeRunAvailable) {
+            alertBtn.classList.remove('hidden');
+          } else {
+            alertBtn.classList.add('hidden');
+          }
+        }
+
+        const boostPill = document.getElementById('hud-coffee-boost-pill');
+        const boostTimer = document.getElementById('hud-coffee-boost-timer');
+        if (boostPill && boostTimer) {
+          if (state.coffeeBoostActive && state.coffeeBoostSecondsLeft > 0) {
+            boostPill.classList.remove('hidden');
+            const bMins = Math.floor(state.coffeeBoostSecondsLeft / 60);
+            const bSecs = state.coffeeBoostSecondsLeft % 60;
+            boostTimer.textContent = `${String(bMins).padStart(2, '0')}:${String(bSecs).padStart(2, '0')}`;
+          } else {
+            boostPill.classList.add('hidden');
+          }
+        }
+      }
+
+      // Render Active 4 Slots
+      function renderActiveRoster() {
+        const container = document.getElementById('active-roster-container');
+        if (!container) return;
+        container.innerHTML = '';
+
+        // Recalculate synergies to ensure active slots & adjacent links are fresh
+        calculateSynergies();
+
+        const activeCount = state.roster.filter(Boolean).length;
+        const countBadge = document.getElementById('roster-count-badge');
+        if (countBadge) countBadge.textContent = `${activeCount} / 4`;
+
+        for (let i = 0; i < 4; i++) {
+          const card = state.roster[i];
+          const slotDiv = document.createElement('div');
+          
+          if (!card) {
+            slotDiv.className = "h-44 border-2 border-dashed border-slate-700/80 hover:border-teal-500/50 rounded-xl p-2.5 flex flex-col items-center justify-center text-center transition-all bg-slate-900/40 group cursor-pointer relative";
+            slotDiv.innerHTML = `
+              <div class="w-8 h-8 rounded-full border border-slate-700 flex items-center justify-center text-slate-500 group-hover:text-teal-400 group-hover:border-teal-500/50 mb-1.5 font-mono text-xs transition">
+                +${i + 1}
+              </div>
+              <span class="text-xs font-mono font-medium text-slate-400 group-hover:text-slate-300">Slot ${i + 1} Empty</span>
+              <span class="text-[9px] text-slate-500 mt-0.5">Select card from Talent Pool</span>
+            `;
+          } else {
+            const isSynergyActive = state.activeSlotIndices && state.activeSlotIndices.has(i);
+            const hasRightAdjacentLink = state.adjacentLinks && state.adjacentLinks.some(link => link.from === i && link.to === i + 1);
+            const adjacentLinkObj = hasRightAdjacentLink ? state.adjacentLinks.find(link => link.from === i && link.to === i + 1) : null;
+
+            const avatarHtml = card.aiPortraitUrl
+              ? `<img src="${card.aiPortraitUrl}" alt="${card.name}" class="w-9 h-9 rounded-lg object-cover border border-teal-500/40 shadow-sm" />`
+              : `<div class="w-9 h-9 shrink-0">${generateCyberAvatarSVG(card.name, card.synergyTag)}</div>`;
+
+            // Apply pulsating border animation if member contributes to synergy combo
+            const baseCardClasses = isSynergyActive
+              ? "min-h-[175px] rounded-xl p-2.5 flex flex-col justify-between transition-all relative group synergy-active-slot"
+              : "min-h-[175px] bg-slate-900/95 border border-slate-700/80 hover:border-slate-600 rounded-xl p-2.5 flex flex-col justify-between transition-all shadow-md relative group";
+
+            slotDiv.className = baseCardClasses;
+
+            // Connecting neon bridge HTML to adjacent card (desktop)
+            const adjacentBridgeHtml = (hasRightAdjacentLink && i < 3) ? `
+              <div class="hidden lg:flex absolute -right-3.5 top-1/2 -translate-y-1/2 z-30 items-center justify-center pointer-events-none" title="Adjacent Synergy Link: ${adjacentLinkObj ? adjacentLinkObj.label : 'Active'}">
+                <div class="relative flex items-center justify-center">
+                  <div class="w-7 h-1 rounded-full neon-beam-active shadow-lg"></div>
+                  <div class="absolute w-5 h-5 rounded-full bg-slate-950 border-2 border-teal-400 neon-conduit-active flex items-center justify-center text-[9px] text-teal-300 font-bold shadow-xl">
+                    ⚡
+                  </div>
+                </div>
+              </div>
+            ` : '';
+
+            // Synergy combo active badge
+            const synergyComboBadge = isSynergyActive ? `
+              <span class="text-[8px] font-mono px-1.5 py-0.5 rounded bg-violet-950/90 text-violet-200 border border-violet-400 font-bold animate-pulse shadow-sm flex items-center gap-1 shrink-0">
+                <span>⚡</span> COMBO
+              </span>
+            ` : '';
+
+            slotDiv.innerHTML = `
+              ${adjacentBridgeHtml}
+              <div>
+                <!-- Top Row -->
+                <div class="flex items-start justify-between gap-1 mb-1.5">
+                  <div class="flex items-center gap-1.5 overflow-hidden">
+                    ${avatarHtml}
+                    <div class="truncate">
+                      <div class="text-xs font-bold text-slate-100 truncate">${card.name}</div>
+                      <div class="text-[9px] text-slate-400 font-mono truncate">${card.title}</div>
+                    </div>
+                  </div>
+                  <button data-slot="${i}" class="btn-bench-slot text-slate-500 hover:text-rose-400 text-xs p-1 font-mono transition" title="Bench student to free slot">
+                    ✕
+                  </button>
+                </div>
+
+                <!-- Role & Synergy Tag Pills + Active Combo Badge -->
+                <div class="flex items-center gap-1 mb-2 flex-wrap">
+                  <span class="text-[9px] font-mono px-1.5 py-0.5 rounded bg-slate-800 text-slate-300 border border-slate-700">
+                    ${card.roleTag}
+                  </span>
+                  <span class="text-[9px] font-mono px-1.5 py-0.5 rounded ${isSynergyActive ? 'bg-violet-900/90 text-violet-200 border-violet-400 font-extrabold shadow-md glow-violet' : 'bg-violet-950/80 text-violet-300 border-violet-500/40 font-semibold shadow-sm'}">
+                    #${card.synergyTag}
+                  </span>
+                  ${synergyComboBadge}
+                </div>
+
+                <!-- Stats 3-Pill Horizontal Display -->
+                <div class="grid grid-cols-3 gap-1 text-center font-mono text-[9px] mb-1.5">
+                  <div class="bg-slate-800/80 p-1 rounded border ${state.coffeeBoostActive ? 'border-amber-400/60 bg-amber-950/40 text-amber-200' : 'border-slate-700/50'}">
+                    <div class="text-slate-400 text-[8px] flex items-center justify-center gap-0.5">
+                      <span>VEL</span>
+                      ${state.coffeeBoostActive ? '<span class="text-amber-400 text-[8px]" title="+10% Coffee Boost">☕</span>' : ''}
+                    </div>
+                    <div class="${state.coffeeBoostActive ? 'text-amber-300 font-extrabold' : 'text-teal-300 font-bold'}">
+                      ${state.coffeeBoostActive ? Math.round(card.velocity * 1.1) : card.velocity}
+                    </div>
+                  </div>
+                  <div class="bg-slate-800/80 p-1 rounded border border-slate-700/50">
+                    <div class="text-slate-400 text-[8px]">DBG</div>
+                    <div class="text-violet-300 font-bold">${card.debug}</div>
+                  </div>
+                  <div class="bg-slate-800/80 p-1 rounded border border-slate-700/50">
+                    <div class="text-slate-400 text-[8px]">UIX</div>
+                    <div class="text-amber-300 font-bold">${card.uix}</div>
+                  </div>
+                </div>
+              </div>
+
+              <!-- Bottom Row: Card Power -->
+              <div class="pt-1.5 border-t border-slate-800 flex items-center justify-between text-[9px] font-mono text-slate-400">
+                <span class="flex items-center gap-1">
+                  ${isSynergyActive ? '<span class="w-1.5 h-1.5 rounded-full bg-teal-400 animate-ping inline-block"></span>' : ''}
+                  <span>Power:</span>
+                </span>
+                <span class="${isSynergyActive ? 'text-teal-300 font-extrabold' : 'text-teal-400 font-bold'}">${Math.round((state.coffeeBoostActive ? Math.round(card.velocity * 1.1) : card.velocity) * 0.4 + card.debug * 0.35 + card.uix * 0.25)} PWR</span>
+              </div>
+            `;
+          }
+          container.appendChild(slotDiv);
+        }
+
+        // Render the Adjacent Synergy Circuit Trace Network
+        renderAdjacentConduitsTrace();
+
+        // Attach bench listeners
+        container.querySelectorAll('.btn-bench-slot').forEach(btn => {
+          btn.addEventListener('click', (e) => {
+            e.stopPropagation();
+            const slotIdx = parseInt(btn.getAttribute('data-slot'));
+            benchCard(slotIdx);
+          });
+        });
+      }
+
+      // Render Adjacent Synergy Circuit Trace Network
+      function renderAdjacentConduitsTrace() {
+        const traceEl = document.getElementById('adjacent-conduits-trace');
+        if (!traceEl) return;
+
+        if (!state.adjacentLinks || state.adjacentLinks.length === 0) {
+          traceEl.classList.add('hidden');
+          traceEl.innerHTML = '';
+          return;
+        }
+
+        traceEl.classList.remove('hidden');
+        traceEl.innerHTML = `
+          <div class="flex flex-col sm:flex-row sm:items-center justify-between gap-1.5 mb-1.5">
+            <div class="flex items-center gap-1.5 text-violet-300 font-bold">
+              <span class="animate-pulse text-xs">⚡</span>
+              <span class="tracking-wider">ADJACENT SYNERGY CONDUIT NETWORK</span>
+              <span class="text-[9px] px-1.5 py-0.2 rounded bg-violet-950 text-teal-300 border border-teal-500/40">
+                ${state.adjacentLinks.length} Active Link${state.adjacentLinks.length > 1 ? 's' : ''}
+              </span>
+            </div>
+            <div class="text-[9px] text-teal-400 font-mono flex items-center gap-1">
+              <span class="w-2 h-2 rounded-full bg-teal-400 animate-ping inline-block"></span>
+              <span>CIRCUIT ENERGIZED (+10% EACH)</span>
+            </div>
+          </div>
+          <div class="flex items-center gap-2 overflow-x-auto py-1">
+            ${state.adjacentLinks.map(link => `
+              <div class="flex items-center gap-1.5 bg-slate-900/90 px-2.5 py-1.5 rounded-lg border border-teal-500/50 shadow-md shrink-0">
+                <div class="flex items-center gap-1">
+                  <span class="w-5 h-5 rounded-full bg-slate-800 border border-teal-400/60 text-[9px] text-teal-300 font-bold flex items-center justify-center">
+                    ${link.from + 1}
+                  </span>
+                  <span class="text-[10px] text-slate-200 font-bold">
+                    ${state.roster[link.from] ? state.roster[link.from].name : `Slot ${link.from + 1}`}
+                  </span>
+                </div>
+                <div class="flex items-center px-1">
+                  <svg width="36" height="14" viewBox="0 0 36 14" class="shrink-0 overflow-visible">
+                    <line x1="0" y1="7" x2="36" y2="7" stroke="#14B8A6" stroke-width="3" class="neon-stroke-animated" />
+                    <circle cx="18" cy="7" r="3" fill="#8B5CF6" class="animate-ping" />
+                  </svg>
+                </div>
+                <div class="flex items-center gap-1">
+                  <span class="w-5 h-5 rounded-full bg-slate-800 border border-teal-400/60 text-[9px] text-teal-300 font-bold flex items-center justify-center">
+                    ${link.to + 1}
+                  </span>
+                  <span class="text-[10px] text-slate-200 font-bold">
+                    ${state.roster[link.to] ? state.roster[link.to].name : `Slot ${link.to + 1}`}
+                  </span>
+                </div>
+                <span class="text-[8px] text-violet-200 font-semibold px-1.5 py-0.5 rounded bg-violet-950 border border-violet-500/50 ml-1">
+                  ${link.label}
+                </span>
+              </div>
+            `).join('')}
+          </div>
+        `;
+      }
+
+      // Render Synergy Matrix Pills
+      function renderSynergies() {
+        const { synergies, multiplier } = calculateSynergies();
+        const pillsContainer = document.getElementById('active-synergies-pills');
+        const badge = document.getElementById('synergy-multiplier-badge');
+
+        if (badge) {
+          badge.textContent = `${multiplier.toFixed(2)}x`;
+          if (multiplier > 1.0) {
+            badge.className = "text-xs font-mono font-extrabold px-2 py-0.5 rounded bg-violet-950 text-violet-300 border border-violet-500 glow-violet animate-pulse";
+          } else {
+            badge.className = "text-xs font-mono font-extrabold px-2 py-0.5 rounded bg-slate-900 text-slate-400 border border-slate-700";
+          }
+        }
+
+        if (pillsContainer) {
+          if (synergies.length === 0) {
+            pillsContainer.innerHTML = `<span class="text-[11px] text-slate-500 font-mono">No active synergies yet</span>`;
+          } else {
+            pillsContainer.innerHTML = synergies.map(s => `
+              <span class="text-[9px] font-mono font-bold px-1.5 py-0.5 rounded border ${s.color} flex items-center gap-1 shadow-sm">
+                <span>⚡</span> ${s.name} (${s.bonusText})
+              </span>
+            `).join('');
+          }
+        }
+      }
+
+      // Render Stamina Forecast Bar (Projection across milestone phases)
+      function renderStaminaForecastBar() {
+        const barContainer = document.getElementById('stamina-forecast-projection-bar');
+        if (!barContainer) return;
+
+        const activeHeroes = state.roster.filter(Boolean);
+        const activeCount = activeHeroes.length;
+        const currentActiveBurn = activeHeroes.reduce((acc, h) => acc + (h.energyCost || 15), 0);
+        // Estimate full 4-hero burn (filling open slots with estimated ~16 NRG each)
+        const estimatedFullTeamBurn = activeCount === 4 ? currentActiveBurn : currentActiveBurn + (4 - activeCount) * 16;
+        
+        // Milestone phases projection:
+        let runningStamina = state.stamina;
+        const phaseForecasts = [];
+        
+        for (let p = state.phaseIndex; p < 3; p++) {
+          const phaseBoss = BOSS_PHASES[p];
+          const projectedDrain = currentActiveBurn > 0 ? currentActiveBurn : estimatedFullTeamBurn;
+          const afterDeployStamina = Math.max(0, runningStamina - projectedDrain);
+          const afterRewardStamina = Math.min(state.maxStamina, afterDeployStamina + phaseBoss.rewardStamina);
+          phaseForecasts.push({
+            phaseNum: p + 1,
+            bossName: phaseBoss.name,
+            drain: projectedDrain,
+            reward: phaseBoss.rewardStamina,
+            netEnd: afterRewardStamina,
+            isCurrent: p === state.phaseIndex,
+            isDeficit: state.stamina < projectedDrain
+          });
+          runningStamina = afterRewardStamina;
+        }
+
+        const hasDeficit = phaseForecasts.some(f => f.isDeficit);
+        const healthStatus = hasDeficit
+          ? { text: "DEFICIT RISK: Coffee Needed", color: "text-rose-400 border-rose-500/40 bg-rose-950/80 animate-pulse" }
+          : runningStamina >= 40
+            ? { text: "OPTIMAL: Sustainable Roster", color: "text-teal-300 border-teal-500/40 bg-teal-950/80" }
+            : { text: "TIGHT MARGINS: Conserve Energy", color: "text-amber-300 border-amber-500/40 bg-amber-950/80" };
+
+        barContainer.innerHTML = `
+          <div class="flex flex-col sm:flex-row sm:items-center justify-between gap-1.5 border-b border-slate-800/80 pb-1.5">
+            <div class="flex items-center gap-2">
+              <span class="text-sm">📉</span>
+              <span class="font-bold text-slate-200 tracking-wider">STAMINA FORECAST & PHASE PROJECTION</span>
+              <span class="px-1.5 py-0.2 rounded text-[9px] font-bold border ${healthStatus.color}">
+                ${healthStatus.text}
+              </span>
+            </div>
+            <div class="flex items-center gap-2 text-slate-400 text-[9px]">
+              <span>Active Burn: <strong class="text-teal-300">${currentActiveBurn} NRG</strong></span>
+              <span>&bull;</span>
+              <span>Est. Full Team: <strong class="text-violet-300">${estimatedFullTeamBurn} NRG</strong></span>
+            </div>
+          </div>
+
+          <!-- Phase-by-Phase Forecast Stepper Track -->
+          <div class="grid grid-cols-1 sm:grid-cols-3 gap-2 mt-1">
+            ${BOSS_PHASES.map((boss, idx) => {
+              const isPast = idx < state.phaseIndex;
+              const isCurrent = idx === state.phaseIndex;
+              const forecast = phaseForecasts.find(f => f.phaseNum === idx + 1);
+
+              if (isPast) {
+                return `
+                  <div class="p-1.5 rounded-lg bg-slate-900/40 border border-slate-800/50 opacity-60 flex items-center justify-between">
+                    <div>
+                      <span class="text-[8px] text-slate-500 uppercase">Phase ${idx + 1} Cleared</span>
+                      <div class="text-slate-400 font-semibold truncate max-w-[110px]">${boss.name}</div>
+                    </div>
+                    <span class="text-teal-400 font-bold text-xs">✓ CLEARED</span>
+                  </div>
+                `;
+              }
+
+              const net = forecast ? forecast.netEnd : state.stamina;
+              const drain = forecast ? forecast.drain : currentActiveBurn;
+              const deficitWarn = forecast && forecast.isDeficit;
+
+              return `
+                <div class="p-1.5 rounded-lg ${isCurrent ? 'bg-slate-900/90 border-teal-500/50 shadow-md ring-1 ring-teal-500/20' : 'bg-slate-900/50 border-slate-800'} border flex flex-col justify-between relative group/pforecast cursor-help">
+                  <div class="flex items-center justify-between text-[9px] mb-0.5">
+                    <span class="${isCurrent ? 'text-teal-300 font-bold' : 'text-slate-400'}">P${idx + 1}: ${boss.name.split(' ')[0]}</span>
+                    <span class="${deficitWarn ? 'text-rose-400 font-bold animate-pulse' : 'text-slate-300'}">
+                      -${drain} NRG ➔ Net ${net}
+                    </span>
+                  </div>
+                  <div class="w-full bg-slate-800 h-1 rounded-full overflow-hidden">
+                    <div class="h-full ${deficitWarn ? 'bg-rose-500' : 'bg-gradient-to-r from-teal-400 to-violet-400'}" style="width: ${Math.min(100, Math.max(5, (net / state.maxStamina) * 100))}%;"></div>
+                  </div>
+                  <!-- Tooltip -->
+                  <div class="absolute bottom-full left-1/2 -translate-x-1/2 mb-1 hidden group-hover/pforecast:flex flex-col w-48 p-2 rounded-lg bg-slate-950 border border-slate-700 text-[9px] text-slate-300 shadow-2xl z-40 pointer-events-none">
+                    <div class="font-bold text-teal-300 border-b border-slate-800 pb-1 mb-1">Phase ${idx + 1} Milestone Burn</div>
+                    <div class="flex justify-between"><span>Boss Target:</span> <span class="text-rose-300">${getBossTargetPower(boss)} PWR</span></div>
+                    <div class="flex justify-between"><span>Deploy Drain:</span> <span class="text-amber-300">-${drain} NRG</span></div>
+                    <div class="flex justify-between"><span>Clear Reward:</span> <span class="text-teal-300">+${boss.rewardStamina} NRG</span></div>
+                    <div class="flex justify-between font-bold border-t border-slate-800 pt-1 mt-1"><span>Projected Reserve:</span> <span class="${deficitWarn ? 'text-rose-400' : 'text-teal-300'}">${net}/${state.maxStamina} NRG</span></div>
+                  </div>
+                </div>
+              `;
+            }).join('')}
+          </div>
+        `;
+      }
+
+      // Render Drafting Pool (3 Cards) with Imagen 3 / SVG Avatar
+      function renderDraftPool() {
+        renderStaminaForecastBar();
+
+        const container = document.getElementById('drafting-pool-container');
+        if (!container) return;
+        container.innerHTML = '';
+
+        const activeHeroes = state.roster.filter(Boolean);
+        const currentActiveBurn = activeHeroes.reduce((acc, h) => acc + (h.energyCost || 15), 0);
+
+        state.draftPool.forEach((card, index) => {
+          const cardDiv = document.createElement('div');
+          cardDiv.className = "bg-slate-900/90 hover:bg-slate-900 border border-slate-700/80 hover:border-teal-500/60 rounded-xl p-3 flex flex-col justify-between transition-all duration-200 hover:-translate-y-1 shadow-md cursor-pointer group relative";
+
+          const postDraftStamina = state.stamina - card.energyCost;
+          const postDraftPct = Math.max(0, Math.round((postDraftStamina / state.maxStamina) * 100));
+          const isDeficit = postDraftStamina < 0;
+          const projectedTeamBurnWithCard = currentActiveBurn + card.energyCost;
+
+          // Forecast indicator HTML
+          const forecastIndicatorHtml = isDeficit ? `
+            <div class="mt-2.5 p-1.5 rounded-lg bg-rose-950/80 border border-rose-500/50 text-rose-300 text-[9px] font-mono flex items-center justify-between shadow-sm relative group/forecast cursor-help">
+              <div class="flex items-center gap-1.5">
+                <span class="animate-pulse">⚠️</span>
+                <span class="font-bold">STAMINA DEFICIT</span>
+              </div>
+              <span class="font-extrabold text-rose-400">-${Math.abs(postDraftStamina)} NRG Short</span>
+              <!-- Tooltip Popup -->
+              <div class="absolute bottom-full left-1/2 -translate-x-1/2 mb-1.5 hidden group-hover/forecast:flex flex-col w-52 p-2.5 rounded-xl bg-slate-950/95 border border-rose-500/50 text-[9px] text-slate-300 shadow-2xl z-40 pointer-events-none backdrop-blur-md">
+                <div class="font-bold text-rose-400 border-b border-slate-800 pb-1 mb-1.5 flex items-center gap-1">
+                  <span>🔋 Stamina Forecast Warning</span>
+                </div>
+                <div class="flex justify-between text-slate-400"><span>Current Stamina:</span> <span class="text-white font-mono">${state.stamina} NRG</span></div>
+                <div class="flex justify-between text-slate-400"><span>Hero Draft Cost:</span> <span class="text-rose-400 font-mono font-bold">-${card.energyCost} NRG</span></div>
+                <div class="flex justify-between text-slate-400"><span>Net Stamina:</span> <span class="text-rose-400 font-mono font-bold">${postDraftStamina} NRG (Deficit)</span></div>
+                <div class="mt-1.5 pt-1 border-t border-slate-800 text-[8px] text-amber-300 leading-tight">
+                  ☕ Drink an Espresso (+25 NRG, -1h) or reroll talent before drafting!
+                </div>
+              </div>
+            </div>
+          ` : `
+            <div class="mt-2.5 p-1.5 rounded-lg bg-slate-950/80 border border-slate-800 text-[9px] font-mono flex items-center justify-between group-hover:border-teal-500/40 transition shadow-sm relative group/forecast cursor-help">
+              <div class="flex items-center gap-1.5">
+                <span class="text-xs">🔋</span>
+                <span class="text-slate-400">Stamina Forecast:</span>
+              </div>
+              <div class="flex items-center gap-1.5">
+                <span class="font-bold ${postDraftPct >= 50 ? 'text-teal-300' : postDraftPct >= 25 ? 'text-amber-300' : 'text-rose-400'}">${postDraftStamina}/${state.maxStamina}</span>
+                <span class="text-[8px] px-1 py-0.2 rounded bg-slate-800 text-slate-300">(${postDraftPct}%)</span>
+              </div>
+              <!-- Tooltip Popup -->
+              <div class="absolute bottom-full left-1/2 -translate-x-1/2 mb-1.5 hidden group-hover/forecast:flex flex-col w-52 p-2.5 rounded-xl bg-slate-950/95 border border-teal-500/40 text-[9px] text-slate-300 shadow-2xl z-40 pointer-events-none backdrop-blur-md">
+                <div class="font-bold text-teal-300 border-b border-slate-800 pb-1 mb-1.5 flex items-center gap-1">
+                  <span>🔋 Stamina Forecast Projection</span>
+                </div>
+                <div class="flex justify-between text-slate-400"><span>Current Stamina:</span> <span class="text-white font-mono">${state.stamina} NRG</span></div>
+                <div class="flex justify-between text-slate-400"><span>Draft Cost:</span> <span class="text-amber-300 font-mono font-bold">-${card.energyCost} NRG</span></div>
+                <div class="flex justify-between text-slate-400"><span>Post-Draft Stamina:</span> <span class="text-teal-300 font-mono font-bold">${postDraftStamina} / ${state.maxStamina} NRG</span></div>
+                <div class="flex justify-between text-slate-400"><span>New Team Deploy Burn:</span> <span class="text-violet-300 font-mono">${projectedTeamBurnWithCard} NRG</span></div>
+                <div class="mt-1.5 pt-1 border-t border-slate-800 text-[8px] ${postDraftStamina > 30 ? 'text-teal-300' : 'text-amber-300'} leading-tight">
+                  ${postDraftStamina > 30 ? '✓ Safe energy reserve to deploy Phase boss.' : '⚠️ Low reserve! Espresso advised after deploy.'}
+                </div>
+              </div>
+            </div>
+          `;
+
+          const avatarContent = card.aiPortraitUrl
+            ? `<img src="${card.aiPortraitUrl}" alt="${card.name}" class="w-12 h-12 rounded-lg object-cover border border-teal-500/50 shadow-md group-hover:scale-105 transition-transform" />`
+            : `<div class="w-12 h-12 shrink-0 group-hover:scale-105 transition-transform">${generateCyberAvatarSVG(card.name, card.synergyTag)}</div>`;
+
+          cardDiv.innerHTML = `
+            <div>
+              <!-- Header with Avatar -->
+              <div class="flex items-start justify-between gap-1 mb-2">
+                <div class="flex items-center gap-2">
+                  ${avatarContent}
+                  <div>
+                    <h3 class="text-xs font-bold text-white group-hover:text-teal-300 transition-colors">${card.name}</h3>
+                    <p class="text-[9px] text-slate-400 font-mono truncate max-w-[130px]">${card.title}</p>
+                  </div>
+                </div>
+                <span class="text-[9px] font-mono px-1.5 py-0.5 rounded bg-slate-800 text-teal-400 border border-teal-500/30 font-bold whitespace-nowrap">
+                  -${card.energyCost} NRG
+                </span>
+              </div>
+
+              <!-- Synergy Tag & AI Button -->
+              <div class="flex items-center justify-between gap-1 mb-2.5">
+                <div class="flex items-center gap-1 flex-wrap">
+                  <span class="text-[9px] font-mono px-1.5 py-0.5 rounded bg-violet-950/90 text-violet-300 border border-violet-500/40 font-bold shadow-sm">
+                    #${card.synergyTag}
+                  </span>
+                  <span class="text-[9px] font-mono text-slate-400 border border-slate-700/60 px-1 py-0.5 rounded bg-slate-800/60">${card.roleTag}</span>
+                </div>
+                <!-- Gen AI Portrait Button -->
+                <button data-index="${index}" class="btn-gen-portrait text-[8px] font-mono px-1.5 py-0.5 rounded bg-teal-500/10 hover:bg-teal-500/20 text-teal-300 border border-teal-500/30 transition flex items-center gap-1">
+                  <span>✨</span>
+                  <span>${card.aiPortraitUrl ? 'Regen AI' : 'Imagen 3'}</span>
+                </button>
+              </div>
+
+              <!-- Stat Bars -->
+              <div class="space-y-1 font-mono text-[9px]">
+                <div>
+                  <div class="flex justify-between text-slate-400 text-[8px] mb-0.5">
+                    <span>VELOCITY</span>
+                    <span class="text-teal-300 font-bold">${card.velocity}/100</span>
+                  </div>
+                  <div class="w-full bg-slate-800 h-1.5 rounded-full overflow-hidden">
+                    <div class="bg-teal-400 h-full rounded-full" style="width: ${card.velocity}%;"></div>
+                  </div>
+                </div>
+                <div>
+                  <div class="flex justify-between text-slate-400 text-[8px] mb-0.5">
+                    <span>DEBUG</span>
+                    <span class="text-violet-300 font-bold">${card.debug}/100</span>
+                  </div>
+                  <div class="w-full bg-slate-800 h-1.5 rounded-full overflow-hidden">
+                    <div class="bg-violet-400 h-full rounded-full" style="width: ${card.debug}%;"></div>
+                  </div>
+                </div>
+                <div>
+                  <div class="flex justify-between text-slate-400 text-[8px] mb-0.5">
+                    <span>UI / UX</span>
+                    <span class="text-amber-300 font-bold">${card.uix}/100</span>
+                  </div>
+                  <div class="w-full bg-slate-800 h-1.5 rounded-full overflow-hidden">
+                    <div class="bg-amber-400 h-full rounded-full" style="width: ${card.uix}%;"></div>
+                  </div>
+                </div>
+              </div>
+
+              <!-- Stamina Forecast Indicator & Tooltip -->
+              ${forecastIndicatorHtml}
+            </div>
+
+            <!-- Action Button -->
+            <button data-index="${index}" class="btn-draft-card mt-2.5 w-full py-1.5 rounded-lg ${isDeficit ? 'bg-rose-500/20 text-rose-300 border border-rose-500/40 hover:bg-rose-500/30' : 'bg-teal-500/10 group-hover:bg-teal-500 group-hover:text-slate-950 text-teal-300 border border-teal-500/40'} font-mono font-bold text-xs transition duration-150 flex items-center justify-center gap-1">
+              <span>${isDeficit ? '⚠️ INSUFFICIENT NRG' : '+ DRAFT TO ROSTER'}</span>
+            </button>
+          `;
+
+          // Card Click to Draft
+          cardDiv.addEventListener('click', (e) => {
+            if (e.target.closest('.btn-gen-portrait') || e.target.closest('.group\\/forecast')) return;
+            draftCardToRoster(index);
+          });
+
+          // Gen AI Portrait Click
+          const genBtn = cardDiv.querySelector('.btn-gen-portrait');
+          if (genBtn) {
+            genBtn.addEventListener('click', async (e) => {
+              e.stopPropagation();
+              genBtn.textContent = 'Generating...';
+              const res = await callAI.generatePortrait(card);
+              if (res.success && res.imageUrl) {
+                card.aiPortraitUrl = res.imageUrl;
+                showToast(`Imagen 3 portrait created for ${card.name}!`, 'teal');
+                logConsole(`Generated Imagen 3 portrait for <strong>${card.name}</strong>.`, 'ai');
+              } else {
+                showToast(`Procedural cyber avatar active for ${card.name}`, 'amber');
+              }
+              renderDraftPool();
+              renderActiveRoster();
+            });
+          }
+
+          container.appendChild(cardDiv);
+        });
+      }
+
+      // Render Boss Drawer & Evaluation Power
+      function renderBossDrawer() {
+        const boss = BOSS_PHASES[state.phaseIndex];
+        const bossContainer = document.getElementById('boss-card-container');
+        const phaseBadge = document.getElementById('boss-phase-badge');
+        const config = DIFFICULTY_CONFIGS[state.difficulty] || DIFFICULTY_CONFIGS.standard;
+        const bossTargetPower = getBossTargetPower(boss);
+
+        if (phaseBadge) {
+          phaseBadge.textContent = `PHASE ${state.phaseIndex + 1} BOSS (${config.difficultyTitle.toUpperCase()})`;
+        }
+
+        if (bossContainer && boss) {
+          const thresholdDiffLabel = config.thresholdMultiplier !== 1.0
+            ? `<span class="text-[9px] font-normal ${config.thresholdMultiplier > 1 ? 'text-rose-400' : 'text-teal-400'}">(${config.thresholdMultiplier > 1 ? '+' : ''}${Math.round((config.thresholdMultiplier - 1) * 100)}% ${config.shortLabel})</span>`
+            : '';
+
+          bossContainer.innerHTML = `
+            <div class="flex items-start gap-2.5">
+              <div class="w-11 h-11 rounded-xl bg-gradient-to-br from-rose-900/60 to-slate-900 border border-rose-500/40 flex items-center justify-center text-xl shadow-inner shrink-0">
+                ${boss.avatar}
+              </div>
+              <div>
+                <h3 class="text-xs font-bold text-rose-300 tracking-wide">${boss.name}</h3>
+                <p class="text-[10px] text-slate-400 mt-0.5 font-mono leading-relaxed">${boss.desc}</p>
+              </div>
+            </div>
+            
+            <div class="mt-2.5 pt-2 border-t border-slate-800/80 flex items-center justify-between text-xs font-mono">
+              <div class="flex items-center gap-1.5 text-slate-400 text-[10px]">
+                <span>Target Power Req:</span>
+                ${thresholdDiffLabel}
+              </div>
+              <span class="text-rose-400 font-extrabold text-xs">${bossTargetPower} PWR</span>
+            </div>
+          `;
+        }
+
+        // Compare Team Power vs Boss Threshold
+        const powerEl = document.getElementById('hud-evaluated-power');
+        const powerBar = document.getElementById('bar-team-power');
+        const marker = document.getElementById('bar-threshold-marker');
+        const targetText = document.getElementById('text-threshold-target');
+        const statusText = document.getElementById('eval-status-text');
+
+        if (targetText && boss) targetText.textContent = `Target: ${bossTargetPower} PWR`;
+        if (powerEl) powerEl.textContent = `${state.totalPower} PWR`;
+
+        const maxScale = Math.max(state.totalPower, bossTargetPower) * 1.25;
+        const currentPct = Math.min(100, (state.totalPower / maxScale) * 100);
+        const thresholdPct = Math.min(100, (bossTargetPower / maxScale) * 100);
+
+        if (powerBar) powerBar.style.width = `${currentPct}%`;
+        if (marker) marker.style.left = `${thresholdPct}%`;
+
+        const activeCount = state.roster.filter(Boolean).length;
+        if (activeCount < 4) {
+          if (statusText) {
+            statusText.textContent = `Need ${4 - activeCount} more hero(es)`;
+            statusText.className = "text-amber-400 font-semibold";
+          }
+        } else if (state.totalPower >= bossTargetPower) {
+          if (statusText) {
+            const surplus = state.totalPower - bossTargetPower;
+            statusText.textContent = `DEPLOY READY (+${surplus} Surplus!)`;
+            statusText.className = "text-teal-300 font-extrabold animate-pulse";
+          }
+        } else {
+          if (statusText) {
+            const deficit = bossTargetPower - state.totalPower;
+            statusText.textContent = `DEFICIT: -${deficit} PWR (Loss Risk!)`;
+            statusText.className = "text-rose-400 font-bold";
+          }
+        }
+      }
+
+      // Fetch Search Grounding Intel for Current Boss
+      async function refreshSearchGrounding() {
+        const boss = BOSS_PHASES[state.phaseIndex];
+        if (!boss) return;
+        const intelEl = document.getElementById('boss-grounded-intel');
+        const sourcesEl = document.getElementById('boss-grounding-sources');
+        if (intelEl) intelEl.textContent = "Querying live developer telemetries via Google Search...";
+
+        const res = await callAI.groundBoss(state.phaseIndex + 1, boss.name);
+        state.groundedBossFlavor = res.groundedFlavor;
+        state.groundingSources = res.sources || [];
+
+        if (intelEl) intelEl.textContent = state.groundedBossFlavor;
+        if (sourcesEl) {
+          if (state.groundingSources.length > 0) {
+            sourcesEl.innerHTML = `<span>Sources:</span> ` + state.groundingSources.map(s => {
+              let host = s;
+              try {
+                host = new URL(s).hostname;
+              } catch (e) {
+                host = String(s).replace(/^https?:\/\//, '').split('/')[0] || s;
+              }
+              const cleanHref = s.startsWith('http') ? s : `https://${s}`;
+              return `<a href="${cleanHref}" target="_blank" class="underline text-teal-300 hover:text-teal-200 truncate max-w-[120px]">${host}</a>`;
+            }).join(' &bull; ');
+          } else {
+            sourcesEl.innerHTML = `<span class="text-slate-500">Live search verified</span>`;
+          }
+        }
+      }
+
+      // --- GAMEPLAY ACTIONS ---
+
+      // Draft card from pool to first available roster slot
+      function draftCardToRoster(poolIndex) {
+        if (state.isGameOver) return;
+        const card = state.draftPool[poolIndex];
+        if (!card) return;
+
+        // Check empty slot
+        const emptySlotIdx = state.roster.findIndex(slot => slot === null);
+        if (emptySlotIdx === -1) {
+          showToast("Roster is full! Bench a member to make room.", "amber");
+          audio.blip();
+          return;
+        }
+
+        // Check stamina
+        if (state.stamina < card.energyCost) {
+          showToast("Not enough stamina! Drink an Espresso.", "rose");
+          audio.defeat();
+          return;
+        }
+
+        state.stamina -= card.energyCost;
+        state.roster[emptySlotIdx] = card;
+        state.draftPool[poolIndex] = generateStudentCard();
+
+        audio.draft();
+        logConsole(`Drafted <strong>${card.name}</strong> (${card.title}) into Slot ${emptySlotIdx + 1}.`, 'info');
+
+        const { synergies } = calculateSynergies();
+        if (synergies.length > 0) {
+          audio.synergy();
+          logConsole(`Synergy Combo Active: <strong>${synergies[synergies.length - 1].name}</strong>!`, 'synergy');
+        }
+
+        updateAllViews();
+      }
+
+      // Bench card from roster slot
+      function benchCard(slotIndex) {
+        if (state.isGameOver) return;
+        const card = state.roster[slotIndex];
+        if (!card) return;
+
+        state.roster[slotIndex] = null;
+        audio.bench();
+        logConsole(`Benched ${card.name} from Slot ${slotIndex + 1}.`, 'info');
+        updateAllViews();
+      }
+
+      // Bench all active members
+      function benchAll() {
+        if (state.isGameOver) return;
+        const count = state.roster.filter(Boolean).length;
+        if (count === 0) return;
+        state.roster = [null, null, null, null];
+        audio.bench();
+        logConsole(`Benched all roster members.`, 'info');
+        updateAllViews();
+      }
+
+      // Reroll Drafting Pool
+      function rerollPool() {
+        if (state.isGameOver) return;
+        const cost = 10;
+        if (state.stamina < cost) {
+          showToast("Not enough stamina to reroll talent pool!", "rose");
+          audio.defeat();
+          return;
+        }
+
+        state.stamina -= cost;
+        rollDraftPool();
+        audio.click();
+        logConsole(`Rerolled talent pool (-${cost} stamina).`, 'info');
+        updateAllViews();
+      }
+
+      // Drink Espresso (+25 stamina, costs 1 hour of clock)
+      function drinkEspresso() {
+        if (state.isGameOver) return;
+        if (state.stamina >= state.maxStamina) {
+          showToast("Stamina is already fully charged!", "amber");
+          return;
+        }
+
+        state.secondsRemaining = Math.max(0, state.secondsRemaining - 3600);
+        state.stamina = Math.min(state.maxStamina, state.stamina + 25);
+        audio.draft();
+        showToast("Espresso brewed! +25 Stamina (-1h clock)", "amber");
+        logConsole("Team downed double shot espresso: +25 Stamina (-1h).", 'info');
+        updateAllViews();
+      }
+
+      // --- RECURRING 'COFFEE RUN' SIDE QUEST ENGINE ---
+      const coffeeRunQuest = {
+        active: false,
+        score: 0,
+        targetScore: 5,
+        timeLimit: 10,
+        timerInterval: null,
+        hopInterval: null,
+        remainingTime: 10,
+
+        // Random trigger check (called every clock tick; recurring every 5 minutes)
+        checkTrigger(deltaSeconds) {
+          if (state.isGameOver) return;
+          state.coffeeRunTimer += deltaSeconds;
+
+          // When 5 minutes (300s) elapses and no quest or alert is currently active
+          if (state.coffeeRunTimer >= state.coffeeRunIntervalSecs && !state.coffeeRunAvailable && !this.active) {
+            state.coffeeRunTimer = 0;
+            // Random variation trigger: 80% chance when interval hits, or automatically on next tick
+            if (Math.random() < 0.85) {
+              this.triggerAlert();
+            }
+          }
+        },
+
+        // Trigger the Alert Toast and bouncing HUD button
+        triggerAlert() {
+          state.coffeeRunAvailable = true;
+          audio.synergy();
+          showToast("☕ Coffee Run side quest available! Quick click challenge for +10% Velocity!", "amber");
+          logConsole("<strong>Side Quest Triggered:</strong> Coffee Run is ready! Start reflex challenge for +10% Velocity boost.", "ai");
+          renderHUD();
+        },
+
+        // Open and start the interactive challenge
+        startChallenge() {
+          state.coffeeRunAvailable = false;
+          this.active = true;
+          this.score = 0;
+          this.targetScore = 5;
+          this.remainingTime = 10.0;
+
+          const modal = document.getElementById('coffee-run-modal');
+          const resultBanner = document.getElementById('coffee-result-banner');
+          const scoreEl = document.getElementById('coffee-score-count');
+          const targetEl = document.getElementById('coffee-target-count');
+          const countdownEl = document.getElementById('coffee-timer-countdown');
+
+          if (modal) {
+            modal.classList.remove('hidden');
+            modal.classList.add('flex');
+          }
+          if (resultBanner) {
+            resultBanner.classList.add('hidden');
+            resultBanner.innerHTML = '';
+          }
+          if (scoreEl) scoreEl.textContent = '0';
+          if (targetEl) targetEl.textContent = String(this.targetScore);
+          if (countdownEl) {
+            countdownEl.textContent = `${this.remainingTime.toFixed(1)}s`;
+            countdownEl.className = "px-2 py-0.5 rounded bg-amber-500/20 text-amber-200 border border-amber-500/40 font-extrabold text-xs";
+          }
+
+          audio.click();
+          this.spawnTarget();
+
+          // High frequency timer countdown (every 100ms)
+          if (this.timerInterval) clearInterval(this.timerInterval);
+          this.timerInterval = setInterval(() => {
+            this.remainingTime = Math.max(0, this.remainingTime - 0.1);
+            if (countdownEl) {
+              countdownEl.textContent = `${this.remainingTime.toFixed(1)}s`;
+              if (this.remainingTime <= 3.0) {
+                countdownEl.className = "px-2 py-0.5 rounded bg-rose-900/60 text-rose-300 border border-rose-500 font-extrabold text-xs animate-pulse";
+              }
+            }
+
+            if (this.remainingTime <= 0) {
+              this.endChallenge(false);
+            }
+          }, 100);
+
+          // Hopping position interval: shifts position every 900ms if not clicked
+          if (this.hopInterval) clearInterval(this.hopInterval);
+          this.hopInterval = setInterval(() => {
+            if (this.active) this.spawnTarget();
+          }, 950);
+        },
+
+        // Spawn clickable espresso mug inside arena
+        spawnTarget() {
+          const arena = document.getElementById('coffee-arena');
+          const target = document.getElementById('coffee-arena-target');
+          if (!arena || !target) return;
+
+          const arenaRect = arena.getBoundingClientRect();
+          const targetSize = 52;
+          const maxLeft = Math.max(10, arenaRect.width - targetSize - 16);
+          const maxTop = Math.max(10, arenaRect.height - targetSize - 16);
+
+          const randomX = Math.floor(Math.random() * maxLeft);
+          const randomY = Math.floor(Math.random() * maxTop);
+
+          target.style.left = `${randomX}px`;
+          target.style.top = `${randomY}px`;
+          target.innerHTML = `
+            <div class="w-12 h-12 rounded-xl bg-gradient-to-br from-amber-400 to-amber-600 border-2 border-amber-200 flex items-center justify-center text-2xl shadow-lg shadow-amber-500/40 animate-bounce active:scale-75 select-none">
+              ☕
+            </div>
+          `;
+
+          // Handle click on the target
+          target.onpointerdown = (e) => {
+            e.stopPropagation();
+            if (!this.active) return;
+            this.score++;
+            audio.draft();
+
+            const scoreEl = document.getElementById('coffee-score-count');
+            if (scoreEl) scoreEl.textContent = String(this.score);
+
+            // Floating tap feedback particle
+            const hitEffect = document.createElement('div');
+            hitEffect.className = "absolute text-amber-300 font-mono font-bold text-xs pointer-events-none transition-all duration-300";
+            hitEffect.style.left = `${randomX + 10}px`;
+            hitEffect.style.top = `${randomY - 15}px`;
+            hitEffect.textContent = "+1 SHOT!";
+            arena.appendChild(hitEffect);
+            setTimeout(() => hitEffect.remove(), 400);
+
+            if (this.score >= this.targetScore) {
+              this.endChallenge(true);
+            } else {
+              this.spawnTarget();
+            }
+          };
+        },
+
+        // End Challenge (Success or Timeout)
+        endChallenge(success) {
+          this.active = false;
+          if (this.timerInterval) clearInterval(this.timerInterval);
+          if (this.hopInterval) clearInterval(this.hopInterval);
+
+          const target = document.getElementById('coffee-arena-target');
+          if (target) target.innerHTML = '';
+
+          const resultBanner = document.getElementById('coffee-result-banner');
+          if (resultBanner) {
+            resultBanner.classList.remove('hidden');
+            if (success) {
+              resultBanner.className = "p-3 rounded-xl bg-teal-950/90 border border-teal-500/60 font-mono text-center text-xs font-bold text-teal-300 shadow-lg";
+              resultBanner.innerHTML = `
+                <div class="flex items-center justify-center gap-2 text-sm text-teal-200 mb-1">
+                  <span>⚡</span> <span>COFFEE RUN COMPLETE!</span> <span>☕</span>
+                </div>
+                <div class="text-[11px] font-normal text-teal-300/90">
+                  Reflex challenge cleared! Gained <strong>+10% Velocity Boost</strong> to all active fellowship members for 2 minutes!
+                </div>
+              `;
+              audio.victory();
+              this.grantVelocityBoost();
+            } else {
+              resultBanner.className = "p-3 rounded-xl bg-rose-950/90 border border-rose-500/60 font-mono text-center text-xs font-bold text-rose-300 shadow-lg";
+              resultBanner.innerHTML = `
+                <div class="flex items-center justify-center gap-2 text-sm text-rose-200 mb-1">
+                  <span>⏰</span> <span>ESPRESSO WENT COLD!</span>
+                </div>
+                <div class="text-[11px] font-normal text-rose-300/90">
+                  Timeout! Collected ${this.score}/${this.targetScore} shots. Don't worry, the next coffee run arrives in 5 minutes!
+                </div>
+              `;
+              audio.defeat();
+            }
+          }
+
+          // Automatically dismiss after brief celebration or skip
+          setTimeout(() => {
+            this.closeModal();
+          }, success ? 1800 : 2200);
+        },
+
+        // Apply temporary +10% velocity boost
+        grantVelocityBoost() {
+          state.coffeeBoostActive = true;
+          state.coffeeBoostSecondsLeft = 120; // 2 minutes active boost
+          showToast("⚡ Coffee Boost Active: +10% Velocity for 2 minutes!", "teal");
+          logConsole("<strong>Coffee Run Complete!</strong> Active roster received <strong>+10% Velocity Boost</strong> (120s).", 'ai');
+          updateAllViews();
+        },
+
+        // Decrement active boost timer during clock ticks
+        tickBoost(deltaSeconds) {
+          if (!state.coffeeBoostActive) return;
+          state.coffeeBoostSecondsLeft = Math.max(0, state.coffeeBoostSecondsLeft - deltaSeconds);
+          if (state.coffeeBoostSecondsLeft <= 0) {
+            state.coffeeBoostActive = false;
+            showToast("Coffee Run +10% Velocity Boost expired.", "amber");
+            logConsole("Coffee Run velocity boost has worn off.", 'info');
+            updateAllViews();
+          }
+        },
+
+        // Close modal
+        closeModal() {
+          this.active = false;
+          if (this.timerInterval) clearInterval(this.timerInterval);
+          if (this.hopInterval) clearInterval(this.hopInterval);
+
+          const modal = document.getElementById('coffee-run-modal');
+          if (modal) {
+            modal.classList.add('hidden');
+            modal.classList.remove('flex');
+          }
+          renderHUD();
+        }
+      };
+
+      // Toggle clock speed
+      function toggleClockSpeed() {
+        if (state.clockSpeed === 1) state.clockSpeed = 5;
+        else if (state.clockSpeed === 5) state.clockSpeed = 0;
+        else state.clockSpeed = 1;
+
+        const btn = document.getElementById('btn-clock-speed');
+        if (btn) {
+          btn.textContent = state.clockSpeed === 0 ? 'PAUSE' : `${state.clockSpeed}x`;
+          btn.className = state.clockSpeed === 0
+            ? "ml-0.5 text-[9px] px-1 py-0.5 rounded bg-rose-900/60 text-rose-300 border border-rose-700 font-mono"
+            : "ml-0.5 text-[9px] px-1 py-0.5 rounded bg-slate-800 text-teal-300 border border-slate-700 font-mono";
+        }
+      }
+
+      // --- VEO 3 KINETIC CANVAS & CUTSCENE SYSTEM ---
+      class CutsceneCanvas {
+        constructor(canvas) {
+          this.canvas = canvas;
+          this.ctx = canvas.getContext('2d');
+          this.particles = [];
+          this.animId = null;
+        }
+        init() {
+          this.canvas.width = this.canvas.clientWidth || 640;
+          this.canvas.height = this.canvas.clientHeight || 360;
+        }
+        start(outcome = 'win', bossName = '') {
+          this.init();
+          this.particles = [];
+          const count = outcome === 'win' ? 120 : 90;
+          for (let i = 0; i < count; i++) {
+            this.particles.push({
+              x: this.canvas.width / 2,
+              y: this.canvas.height / 2,
+              vx: (Math.random() - 0.5) * (outcome === 'win' ? 14 : 10),
+              vy: (Math.random() - 0.5) * (outcome === 'win' ? 14 : 10),
+              size: Math.random() * 4 + 1.5,
+              color: outcome === 'win' 
+                ? (Math.random() > 0.5 ? '#14B8A6' : '#8B5CF6') 
+                : (Math.random() > 0.5 ? '#F43F5E' : '#F59E0B'),
+              life: 1.0,
+              text: outcome === 'win' ? (Math.random() > 0.7 ? '200 OK' : '1') : (Math.random() > 0.7 ? '500' : '0')
+            });
+          }
+          this.loop();
+        }
+        loop() {
+          this.ctx.fillStyle = 'rgba(10, 15, 29, 0.25)';
+          this.ctx.fillRect(0, 0, this.canvas.width, this.canvas.height);
+
+          this.particles.forEach((p, idx) => {
+            p.x += p.vx;
+            p.y += p.vy;
+            p.life -= 0.012;
+
+            this.ctx.save();
+            this.ctx.globalAlpha = Math.max(0, p.life);
+            this.ctx.fillStyle = p.color;
+            this.ctx.font = '10px JetBrains Mono';
+            this.ctx.fillText(p.text, p.x, p.y);
+            this.ctx.restore();
+
+            if (p.life <= 0) {
+              this.particles.splice(idx, 1);
+            }
+          });
+
+          if (this.particles.length > 0) {
+            this.animId = requestAnimationFrame(() => this.loop());
+          }
+        }
+        stop() {
+          if (this.animId) cancelAnimationFrame(this.animId);
+          this.ctx.clearRect(0, 0, this.canvas.width, this.canvas.height);
+        }
+      }
+
+      let cutsceneEngine = null;
+
+      function openCutsceneModal(outcome, boss) {
+        const modal = document.getElementById('cutscene-modal');
+        const headline = document.getElementById('cutscene-headline');
+        const subtext = document.getElementById('cutscene-subtext');
+        const tag = document.getElementById('cutscene-status-tag');
+        const narrative = document.getElementById('cutscene-narrative-text');
+        const bigIcon = document.getElementById('cutscene-big-icon');
+
+        if (!modal) return;
+        modal.classList.remove('hidden');
+        modal.classList.add('flex');
+
+        if (!cutsceneEngine) {
+          const c = document.getElementById('cutscene-canvas');
+          cutsceneEngine = new CutsceneCanvas(c);
+        }
+
+        cutsceneEngine.start(outcome, boss.name);
+
+        const narrativeMsg = outcome === 'win'
+          ? `Deploy Victory: ${boss.name} collapsed into clean 200 OK packets! +${boss.rewardXP} Guild XP awarded.`
+          : `Deploy Wipeout: Deficit against ${boss.name}! 500 error cascade drained stamina and shaved 6 hours!`;
+
+        if (narrative) narrative.textContent = narrativeMsg;
+
+        if (outcome === 'win') {
+          headline.textContent = `${boss.name.toUpperCase()} SHATTERED!`;
+          headline.className = "text-base font-bold font-mono text-teal-300 drop-shadow";
+          subtext.textContent = "All unit tests pass & preflight headers aligned in production!";
+          tag.textContent = "200 OK CLEARED";
+          tag.className = "px-2 py-0.5 rounded text-[10px] font-mono font-bold bg-teal-500/20 text-teal-300 border border-teal-500/40";
+          bigIcon.textContent = "🏆";
+        } else {
+          headline.textContent = `CRITICAL FAILURE ON ${boss.name.toUpperCase()}`;
+          headline.className = "text-base font-bold font-mono text-rose-400 drop-shadow";
+          subtext.textContent = "Server returned 500 internal server error. Production rollbacks triggered!";
+          tag.textContent = "500 WIPEOUT";
+          tag.className = "px-2 py-0.5 rounded text-[10px] font-mono font-bold bg-rose-500/20 text-rose-300 border border-rose-500/40";
+          bigIcon.textContent = "💥";
+        }
+
+        // Trigger voice narration
+        callAI.narrateText(narrativeMsg);
+
+        // Async Veo Cutscene hook
+        callAI.triggerCutscene(boss.name, state.phaseIndex + 1, outcome);
+      }
+
+      function closeCutsceneModal() {
+        const modal = document.getElementById('cutscene-modal');
+        if (modal) {
+          modal.classList.add('hidden');
+          modal.classList.remove('flex');
+        }
+        if (cutsceneEngine) cutsceneEngine.stop();
+      }
+
+      // --- DEPLOY AGAINST BOSS MILESTONE ---
+      function deployRoster() {
+        if (state.isGameOver) return;
+        const activeCount = state.roster.filter(Boolean).length;
+        if (activeCount < 4) {
+          showToast("Form a full 4-member fellowship before deploying!", "amber");
+          audio.blip();
+          return;
+        }
+
+        const boss = BOSS_PHASES[state.phaseIndex];
+        const config = DIFFICULTY_CONFIGS[state.difficulty] || DIFFICULTY_CONFIGS.standard;
+        const bossTargetPower = getBossTargetPower(boss);
+        const isWin = state.totalPower >= bossTargetPower;
+
+        if (isWin) {
+          audio.victory();
+          state.guildXP += boss.rewardXP;
+          state.stamina = Math.min(state.maxStamina, state.stamina + boss.rewardStamina);
+
+          logConsole(`Milestone Cleared: <strong>${boss.name}</strong> defeated! (+${boss.rewardXP} XP, +${boss.rewardStamina} Stamina)`, 'win');
+          openCutsceneModal('win', boss);
+
+          if (state.phaseIndex < 2) {
+            state.phaseIndex++;
+            state.roster = [null, null, null, null];
+            rollDraftPool();
+            refreshSearchGrounding();
+            showToast(`Phase ${state.phaseIndex} Cleared! Next challenge ahead.`, 'teal');
+          } else {
+            // Grand Victory!
+            triggerEndGame(true);
+          }
+        } else {
+          // Defeat
+          audio.defeat();
+          document.body.classList.add('screen-shake');
+          setTimeout(() => document.body.classList.remove('screen-shake'), 400);
+
+          state.stamina = Math.max(0, state.stamina - config.lossStaminaPenalty);
+          state.secondsRemaining = Math.max(0, state.secondsRemaining - config.lossHoursPenalty);
+
+          logConsole(`Failed Deploy against ${boss.name}: -${config.lossStaminaPenalty} Stamina, -${config.lossHoursPenalty / 3600} Hours penalty! (${config.shortLabel} Mode)`, 'boss');
+          openCutsceneModal('loss', boss);
+
+          if (state.secondsRemaining <= 0) {
+            triggerEndGame(false, "Clock Expired during fatal deployment crash!");
+          }
+        }
+
+        updateAllViews();
+      }
+
+      // --- END GAME & SUBMISSION HASH ---
+      function generateSubmissionHash() {
+        const timestamp = Date.now().toString(16).toUpperCase();
+        const scoreHex = (state.guildXP * 7).toString(16).toUpperCase().padStart(4, '0');
+        const phaseHex = (state.phaseIndex + 1).toString(16).toUpperCase();
+        return `GM-HACK-${timestamp}-${scoreHex}-${phaseHex}`;
+      }
+
+      function triggerEndGame(isVictory, customReason = "") {
+        state.isGameOver = true;
+        if (state.clockInterval) clearInterval(state.clockInterval);
+
+        const modal = document.getElementById('game-over-modal');
+        const title = document.getElementById('modal-title');
+        const subtitle = document.getElementById('modal-subtitle');
+        const rankBadge = document.getElementById('modal-rank-badge');
+        const icon = document.getElementById('modal-badge-icon');
+        const statXP = document.getElementById('modal-stat-xp');
+        const statTime = document.getElementById('modal-stat-time');
+        const statPhase = document.getElementById('modal-stat-phase');
+        const statSynergies = document.getElementById('modal-stat-synergies');
+        const hashText = document.getElementById('modal-hash-text');
+        const mdPreview = document.getElementById('modal-markdown-preview');
+
+        if (!modal) return;
+        modal.classList.remove('hidden');
+        modal.classList.add('flex');
+
+        const config = DIFFICULTY_CONFIGS[state.difficulty] || DIFFICULTY_CONFIGS.standard;
+        const diffBadge = document.getElementById('modal-diff-badge');
+        const hoursLeft = Math.floor(state.secondsRemaining / 3600);
+        const minsLeft = Math.floor((state.secondsRemaining % 3600) / 60);
+
+        let rank = 'C';
+        if (isVictory) {
+          if (state.guildXP >= 1400 && hoursLeft >= 12) rank = 'S';
+          else if (state.guildXP >= 1000) rank = 'A';
+          else rank = 'B';
+        }
+
+        if (diffBadge) {
+          diffBadge.className = `px-2 py-0.5 rounded text-[10px] font-mono font-bold ${config.badgeClass}`;
+          diffBadge.textContent = `${config.icon} ${config.label} (${config.difficultyTitle})`;
+        }
+
+        if (isVictory) {
+          title.textContent = "HACKATHON GRAND VICTORY";
+          subtitle.textContent = `All 3 Milestone Phases Cleared Successfully before ${config.hours} Hours!`;
+          rankBadge.textContent = `RANK: ${rank}`;
+          rankBadge.className = "px-2.5 py-1 rounded bg-teal-500/20 text-teal-300 border border-teal-500/40 text-xs font-mono font-bold";
+          icon.textContent = "🏆";
+        } else {
+          title.textContent = "SUBMISSION WINDOW CLOSED";
+          subtitle.textContent = customReason || `${config.hours}-Hour Clock reached zero before final submission.`;
+          rankBadge.textContent = "RANK: INC";
+          rankBadge.className = "px-2.5 py-1 rounded bg-rose-500/20 text-rose-300 border border-rose-500/40 text-xs font-mono font-bold";
+          icon.textContent = "💀";
+        }
+
+        if (statXP) statXP.textContent = state.guildXP.toLocaleString();
+        if (statTime) statTime.textContent = `${hoursLeft}h ${minsLeft}m`;
+        if (statPhase) statPhase.textContent = `${isVictory ? 3 : state.phaseIndex} / 3`;
+        if (statSynergies) statSynergies.textContent = `${state.activeSynergies.length} Combos`;
+
+        const verificationHash = generateSubmissionHash();
+        if (hashText) hashText.textContent = verificationHash;
+
+        const markdownReport = `### 🚀 GUILDMASTERS: HACKATHON EDITION SUBMISSION
+- **Difficulty Mode:** ${config.label} (${config.difficultyTitle})
+- **Outcome:** ${isVictory ? 'GRAND VICTORY' : 'DEFEATED'} (Rank ${rank})
+- **Final Score:** ${state.guildXP.toLocaleString()} XP
+- **Time Left:** ${hoursLeft}h ${minsLeft}m / ${config.hours}h
+- **Milestones Cleared:** ${isVictory ? 3 : state.phaseIndex} / 3 Phases
+- **Active Synergies:** ${state.activeSynergies.map(s => s.name).join(', ') || 'None'}
+- **Team MVP:** ${state.mvpHero ? `${state.mvpHero.name} (${state.mvpHero.title})` : 'Fellowship'}
+- **Verification Hash:** \`${verificationHash}\`
+- **Certified By:** AI Lead Guildmaster & Google AI Studio (Search Grounded)`;
+
+        if (mdPreview) mdPreview.textContent = markdownReport;
+
+        const copyBtn = document.getElementById('btn-copy-hash');
+        if (copyBtn) {
+          copyBtn.onclick = () => {
+            navigator.clipboard.writeText(markdownReport).then(() => {
+              const label = document.getElementById('copy-btn-label');
+              if (label) label.textContent = "COPIED TO CLIPBOARD!";
+              showToast("Submission Proof & Hash Copied!", "teal");
+              setTimeout(() => {
+                if (label) label.textContent = "COPY HASH FOR SUBMISSION";
+              }, 2500);
+            });
+          };
+        }
+      }
+
+      // --- AI LEAD GUILDMASTER 3AM CHAT SYSTEM ---
+      function openChatDrawer() {
+        const drawer = document.getElementById('chat-drawer');
+        if (drawer) drawer.classList.remove('translate-x-full');
+      }
+
+      function closeChatDrawer() {
+        const drawer = document.getElementById('chat-drawer');
+        if (drawer) drawer.classList.add('translate-x-full');
+      }
+
+      function appendChatMessage(sender, text) {
+        const container = document.getElementById('chat-messages-container');
+        if (!container) return;
+
+        const msgDiv = document.createElement('div');
+        msgDiv.className = sender === 'user' ? 'flex items-start justify-end gap-2' : 'flex items-start gap-2';
+
+        const bubbleClass = sender === 'user'
+          ? 'bg-violet-600 text-white rounded-xl p-2.5 max-w-[80%] text-[11px] shadow-sm'
+          : 'bg-slate-800/90 border border-slate-700/60 rounded-xl p-2.5 text-slate-200 text-[11px] leading-relaxed shadow-sm max-w-[85%]';
+
+        const senderIcon = sender === 'user' ? '👤' : '🤖';
+
+        msgDiv.innerHTML = sender === 'user'
+          ? `<div class="${bubbleClass}">${text}</div><span class="text-base shrink-0">${senderIcon}</span>`
+          : `<span class="text-base shrink-0">${senderIcon}</span>
+             <div class="${bubbleClass}">
+               <div>${text}</div>
+               <button class="btn-tts-msg text-[9px] text-teal-400 hover:text-teal-300 mt-1 flex items-center gap-1 font-mono">
+                 🔊 Play Voice
+               </button>
+             </div>`;
+
+        container.appendChild(msgDiv);
+        container.scrollTop = container.scrollHeight;
+
+        const ttsBtn = msgDiv.querySelector('.btn-tts-msg');
+        if (ttsBtn) {
+          ttsBtn.addEventListener('click', () => {
+            callAI.narrateText(text);
+          });
+        }
+      }
+
+      async function sendGuildmasterMessage(promptText) {
+        if (!promptText) return;
+        appendChatMessage('user', promptText);
+
+        const currentBoss = BOSS_PHASES[state.phaseIndex];
+        const res = await callAI.roastRoster(
+          state.roster,
+          currentBoss,
+          state.secondsRemaining,
+          state.guildXP,
+          state.stamina,
+          promptText
+        );
+
+        appendChatMessage('guildmaster', res.text);
+        if (callAI.voiceEnabled) {
+          callAI.narrateText(res.text);
+        }
+      }
+
+      // --- DIFFICULTY MODAL CONTROLS ---
+      function openDifficultyModal() {
+        const modal = document.getElementById('difficulty-modal');
+        if (modal) {
+          modal.classList.remove('hidden');
+          modal.classList.add('flex');
+          // Highlight active card
+          document.querySelectorAll('.diff-option-card').forEach(card => {
+            const id = card.getAttribute('data-diff-id');
+            if (id === state.difficulty) {
+              card.classList.add('ring-2', 'ring-teal-400');
+            } else {
+              card.classList.remove('ring-2', 'ring-teal-400');
+            }
+          });
+        }
+      }
+
+      function closeDifficultyModal() {
+        const modal = document.getElementById('difficulty-modal');
+        if (modal) {
+          modal.classList.add('hidden');
+          modal.classList.remove('flex');
+        }
+      }
+
+      function selectDifficulty(diffId) {
+        const config = DIFFICULTY_CONFIGS[diffId];
+        if (!config) return;
+
+        const hasActiveProgress = state.roster.some(Boolean) || state.guildXP > 0 || state.phaseIndex > 0;
+        if (hasActiveProgress) {
+          if (!confirm(`Switch to ${config.label} difficulty? This will reset the current hackathon run.`)) {
+            return;
+          }
+        }
+
+        closeDifficultyModal();
+        initGame(diffId);
+        showToast(`Sprint Mode: ${config.label} (${config.difficultyTitle}) engaged!`, 'teal');
+        audio.draft();
+      }
+
+      // --- GAME LOOP & CLOCK TICK ---
+      function startClock() {
+        if (state.clockInterval) clearInterval(state.clockInterval);
+        state.clockInterval = setInterval(() => {
+          if (state.isGameOver || state.clockSpeed === 0) return;
+
+          // 1 real second = clockSpeed * 60 simulated seconds
+          const stepSeconds = state.clockSpeed * 60;
+          state.secondsRemaining = Math.max(0, state.secondsRemaining - stepSeconds);
+
+          // Check recurring 5-minute Coffee Run trigger (real elapsed seconds: 1 second per real-time tick)
+          coffeeRunQuest.checkTrigger(1);
+          // Tick down active boost duration (1 second per real-time tick)
+          coffeeRunQuest.tickBoost(1);
+
+          if (state.secondsRemaining <= 0) {
+            const config = DIFFICULTY_CONFIGS[state.difficulty] || DIFFICULTY_CONFIGS.standard;
+            triggerEndGame(false, `${config.hours}-Hour Hackathon Timer Expired!`);
+          }
+
+          renderHUD();
+        }, 1000);
+      }
+
+      // Refresh all views
+      function updateAllViews() {
+        renderHUD();
+        renderActiveRoster();
+        renderSynergies();
+        renderDraftPool();
+        renderBossDrawer();
+      }
+
+      // Initialize New Game Run
+      async function initGame(diffId = state.difficulty) {
+        const config = DIFFICULTY_CONFIGS[diffId] || DIFFICULTY_CONFIGS.standard;
+        state.difficulty = config.id;
+        state.secondsRemaining = config.hours * 3600;
+        state.guildXP = 0;
+        state.stamina = config.startingStamina;
+        state.maxStamina = config.maxStamina;
+        state.phaseIndex = 0;
+        state.roster = [null, null, null, null];
+        state.isGameOver = false;
+
+        // Reset Coffee Run Side Quest state
+        state.coffeeRunTimer = 0;
+        state.coffeeRunAvailable = false;
+        state.coffeeBoostActive = false;
+        state.coffeeBoostSecondsLeft = 0;
+        coffeeRunQuest.closeModal();
+
+        const modal = document.getElementById('game-over-modal');
+        if (modal) {
+          modal.classList.add('hidden');
+          modal.classList.remove('flex');
+        }
+
+        closeDifficultyModal();
+        rollDraftPool();
+        updateAllViews();
+        startClock();
+
+        logConsole(`GUILDMASTERS: Hackathon Initialized (${config.label} - ${config.difficultyTitle}).`, 'info');
+        logConsole(`Starting Stamina: ${config.startingStamina} NRG &bull; Clock: ${config.hours} Hours &bull; Boss Target: ${config.thresholdMultiplier}x`, 'info');
+
+        // Check AI Status
+        const status = await callAI.checkStatus();
+        const statusDot = document.getElementById('ai-status-dot');
+        const statusText = document.getElementById('ai-status-text');
+
+        if (status.configured) {
+          if (statusDot) statusDot.className = "w-2 h-2 rounded-full bg-teal-400 animate-pulse";
+          if (statusText) statusText.textContent = "AI Studio: Live (Gemini, Imagen, Veo)";
+          logConsole("Connected to Google AI Studio live endpoints.", 'ai');
+        } else {
+          if (statusDot) statusDot.className = "w-2 h-2 rounded-full bg-amber-400";
+          if (statusText) statusText.textContent = "AI Studio: Procedural Simulation Active";
+        }
+
+        // Fetch first Search Grounded intel
+        refreshSearchGrounding();
+      }
+
+      // --- ATTACH EVENT LISTENERS ---
+      document.addEventListener('DOMContentLoaded', () => {
+        initGame('standard');
+
+        // Difficulty Controls
+        document.getElementById('btn-difficulty-select')?.addEventListener('click', openDifficultyModal);
+        document.getElementById('btn-close-difficulty-modal')?.addEventListener('click', closeDifficultyModal);
+        document.getElementById('btn-modal-change-diff')?.addEventListener('click', () => {
+          const gameOverModal = document.getElementById('game-over-modal');
+          if (gameOverModal) {
+            gameOverModal.classList.add('hidden');
+            gameOverModal.classList.remove('flex');
+          }
+          openDifficultyModal();
+        });
+
+        // Difficulty Option Cards & Buttons
+        document.querySelectorAll('.diff-option-card').forEach(card => {
+          card.addEventListener('click', (e) => {
+            const diffId = card.getAttribute('data-diff-id');
+            if (diffId) selectDifficulty(diffId);
+          });
+        });
+
+        document.querySelectorAll('.btn-select-diff').forEach(btn => {
+          btn.addEventListener('click', (e) => {
+            e.stopPropagation();
+            const diffId = btn.getAttribute('data-diff-btn');
+            if (diffId) selectDifficulty(diffId);
+          });
+        });
+
+        // Top HUD buttons
+        document.getElementById('btn-clock-speed')?.addEventListener('click', toggleClockSpeed);
+        document.getElementById('btn-coffee-rest')?.addEventListener('click', drinkEspresso);
+        document.getElementById('btn-coffee-run-alert')?.addEventListener('click', () => coffeeRunQuest.startChallenge());
+        document.getElementById('btn-close-coffee-modal')?.addEventListener('click', () => coffeeRunQuest.closeModal());
+        document.getElementById('btn-coffee-give-up')?.addEventListener('click', () => coffeeRunQuest.closeModal());
+        document.getElementById('btn-clear-roster')?.addEventListener('click', benchAll);
+        document.getElementById('btn-reroll-pool')?.addEventListener('click', rerollPool);
+        document.getElementById('btn-deploy-roster')?.addEventListener('click', deployRoster);
+        document.getElementById('btn-refresh-grounding')?.addEventListener('click', refreshSearchGrounding);
+
+        // Sound & Voice
+        document.getElementById('btn-toggle-mute')?.addEventListener('click', () => {
+          const isMuted = audio.toggleMute();
+          const icon = document.getElementById('icon-audio');
+          if (icon) icon.textContent = isMuted ? '🔇' : '🔊';
+          showToast(isMuted ? "Sound SFX Muted" : "Sound SFX Enabled", "amber");
+        });
+
+        document.getElementById('btn-toggle-voice')?.addEventListener('click', () => {
+          callAI.voiceEnabled = !callAI.voiceEnabled;
+          const icon = document.getElementById('icon-voice');
+          const btn = document.getElementById('btn-toggle-voice');
+          if (icon && btn) {
+            icon.textContent = callAI.voiceEnabled ? '🎙️' : '🔇';
+            btn.querySelector('span:last-child').textContent = callAI.voiceEnabled ? 'VOICE ON' : 'VOICE OFF';
+          }
+          showToast(callAI.voiceEnabled ? "Gemini Voice Narration Active" : "Voice Narration Muted", "teal");
+        });
+
+        // Chat Drawer Toggle
+        document.getElementById('btn-open-chat')?.addEventListener('click', openChatDrawer);
+        document.getElementById('btn-close-chat')?.addEventListener('click', closeChatDrawer);
+
+        // Chat Chips
+        document.getElementById('chip-roast')?.addEventListener('click', () => {
+          sendGuildmasterMessage("Roast our current hackathon team setup and call out all our bad architectural choices.");
+        });
+        document.getElementById('chip-advice')?.addEventListener('click', () => {
+          sendGuildmasterMessage("Give us high-IQ 3AM tactical advice to clear the current milestone boss.");
+        });
+        document.getElementById('chip-odds')?.addEventListener('click', () => {
+          sendGuildmasterMessage("Calculate our mathematical win probability and identify our weakest link.");
+        });
+
+        // Chat Form
+        document.getElementById('chat-form')?.addEventListener('submit', (e) => {
+          e.preventDefault();
+          const input = document.getElementById('chat-input');
+          if (input && input.value.trim()) {
+            const val = input.value.trim();
+            input.value = '';
+            sendGuildmasterMessage(val);
+          }
+        });
+
+        // Cutscene Controls
+        document.getElementById('btn-close-cutscene')?.addEventListener('click', closeCutsceneModal);
+        document.getElementById('btn-replay-cutscene-audio')?.addEventListener('click', () => {
+          const text = document.getElementById('cutscene-narrative-text')?.textContent;
+          if (text) callAI.narrateText(text);
+        });
+
+        // Reset Run
+        document.getElementById('btn-reset-run')?.addEventListener('click', () => {
+          if (confirm("Reset current hackathon run and start fresh?")) {
+            initGame(state.difficulty);
+          }
+        });
+
+        document.getElementById('btn-modal-restart')?.addEventListener('click', () => initGame(state.difficulty));
+        document.getElementById('btn-clear-log')?.addEventListener('click', () => {
+          const box = document.getElementById('console-log-box');
+          if (box) box.innerHTML = '';
+        });
+
+        // Mobile Responsive Tab / Dock Switcher Logic
+        function setMobileActiveView(view) {
+          const rosterCol = document.getElementById('panel-roster-column');
+          const bossCol = document.getElementById('panel-boss-column');
+
+          const topTabs = {
+            roster: document.getElementById('tab-btn-roster'),
+            boss: document.getElementById('tab-btn-boss'),
+            chat: document.getElementById('tab-btn-chat')
+          };
+          const dockBtns = {
+            roster: document.getElementById('dock-btn-roster'),
+            boss: document.getElementById('dock-btn-boss'),
+            chat: document.getElementById('dock-btn-chat')
+          };
+
+          if (view === 'roster') {
+            rosterCol?.classList.remove('hidden');
+            bossCol?.classList.add('hidden');
+            closeChatDrawer();
+
+            // Highlight tab styles
+            topTabs.roster?.className && (topTabs.roster.className = "mobile-nav-tab py-2 px-2 rounded-lg bg-teal-500/20 text-teal-300 font-bold border border-teal-500/40 flex items-center justify-center gap-1.5 transition active:scale-95 shadow-sm min-h-[44px]");
+            topTabs.boss?.className && (topTabs.boss.className = "mobile-nav-tab py-2 px-2 rounded-lg text-slate-400 hover:text-slate-200 flex items-center justify-center gap-1.5 transition active:scale-95 min-h-[44px]");
+            topTabs.chat?.className && (topTabs.chat.className = "mobile-nav-tab py-2 px-2 rounded-lg text-slate-400 hover:text-slate-200 flex items-center justify-center gap-1.5 transition active:scale-95 min-h-[44px]");
+
+            // Highlight dock styles
+            dockBtns.roster?.className && (dockBtns.roster.className = "mobile-dock-btn flex flex-col items-center justify-center gap-0.5 text-teal-300 font-bold transition active:scale-95 min-h-[44px] min-w-[64px]");
+            dockBtns.boss?.className && (dockBtns.boss.className = "mobile-dock-btn flex flex-col items-center justify-center gap-0.5 text-slate-400 hover:text-slate-200 transition active:scale-95 min-h-[44px] min-w-[64px]");
+            dockBtns.chat?.className && (dockBtns.chat.className = "mobile-dock-btn flex flex-col items-center justify-center gap-0.5 text-slate-400 hover:text-slate-200 transition active:scale-95 min-h-[44px] min-w-[64px]");
+          } else if (view === 'boss') {
+            rosterCol?.classList.add('hidden');
+            bossCol?.classList.remove('hidden');
+            closeChatDrawer();
+
+            topTabs.roster?.className && (topTabs.roster.className = "mobile-nav-tab py-2 px-2 rounded-lg text-slate-400 hover:text-slate-200 flex items-center justify-center gap-1.5 transition active:scale-95 min-h-[44px]");
+            topTabs.boss?.className && (topTabs.boss.className = "mobile-nav-tab py-2 px-2 rounded-lg bg-rose-500/20 text-rose-300 font-bold border border-rose-500/40 flex items-center justify-center gap-1.5 transition active:scale-95 shadow-sm min-h-[44px]");
+            topTabs.chat?.className && (topTabs.chat.className = "mobile-nav-tab py-2 px-2 rounded-lg text-slate-400 hover:text-slate-200 flex items-center justify-center gap-1.5 transition active:scale-95 min-h-[44px]");
+
+            dockBtns.roster?.className && (dockBtns.roster.className = "mobile-dock-btn flex flex-col items-center justify-center gap-0.5 text-slate-400 hover:text-slate-200 transition active:scale-95 min-h-[44px] min-w-[64px]");
+            dockBtns.boss?.className && (dockBtns.boss.className = "mobile-dock-btn flex flex-col items-center justify-center gap-0.5 text-rose-300 font-bold transition active:scale-95 min-h-[44px] min-w-[64px]");
+            dockBtns.chat?.className && (dockBtns.chat.className = "mobile-dock-btn flex flex-col items-center justify-center gap-0.5 text-slate-400 hover:text-slate-200 transition active:scale-95 min-h-[44px] min-w-[64px]");
+          } else if (view === 'chat') {
+            openChatDrawer();
+
+            topTabs.roster?.className && (topTabs.roster.className = "mobile-nav-tab py-2 px-2 rounded-lg text-slate-400 hover:text-slate-200 flex items-center justify-center gap-1.5 transition active:scale-95 min-h-[44px]");
+            topTabs.boss?.className && (topTabs.boss.className = "mobile-nav-tab py-2 px-2 rounded-lg text-slate-400 hover:text-slate-200 flex items-center justify-center gap-1.5 transition active:scale-95 min-h-[44px]");
+            topTabs.chat?.className && (topTabs.chat.className = "mobile-nav-tab py-2 px-2 rounded-lg bg-violet-500/20 text-violet-300 font-bold border border-violet-500/40 flex items-center justify-center gap-1.5 transition active:scale-95 shadow-sm min-h-[44px]");
+
+            dockBtns.roster?.className && (dockBtns.roster.className = "mobile-dock-btn flex flex-col items-center justify-center gap-0.5 text-slate-400 hover:text-slate-200 transition active:scale-95 min-h-[44px] min-w-[64px]");
+            dockBtns.boss?.className && (dockBtns.boss.className = "mobile-dock-btn flex flex-col items-center justify-center gap-0.5 text-slate-400 hover:text-slate-200 transition active:scale-95 min-h-[44px] min-w-[64px]");
+            dockBtns.chat?.className && (dockBtns.chat.className = "mobile-dock-btn flex flex-col items-center justify-center gap-0.5 text-violet-300 font-bold transition active:scale-95 min-h-[44px] min-w-[64px]");
+          }
+        }
+
+        // Attach listeners to mobile top tabs and bottom dock
+        document.getElementById('tab-btn-roster')?.addEventListener('click', () => setMobileActiveView('roster'));
+        document.getElementById('tab-btn-boss')?.addEventListener('click', () => setMobileActiveView('boss'));
+        document.getElementById('tab-btn-chat')?.addEventListener('click', () => setMobileActiveView('chat'));
+
+        document.getElementById('dock-btn-roster')?.addEventListener('click', () => setMobileActiveView('roster'));
+        document.getElementById('dock-btn-boss')?.addEventListener('click', () => setMobileActiveView('boss'));
+        document.getElementById('dock-btn-chat')?.addEventListener('click', () => setMobileActiveView('chat'));
+
+        // Handle window resize to auto-restore desktop layout
+        window.addEventListener('resize', () => {
+          if (window.innerWidth >= 1024) {
+            document.getElementById('panel-roster-column')?.classList.remove('hidden');
+            document.getElementById('panel-boss-column')?.classList.remove('hidden');
+          }
+        });
+
+        // Theme Controller System
+        const THEME_STORAGE_KEY = 'gm_theme_choice';
+
+        function applyTheme(choice) {
+          const selectEl = document.getElementById('select-theme');
+          const iconEl = document.getElementById('theme-selector-icon');
+          const prefersDark = window.matchMedia('(prefers-color-scheme: dark)').matches;
+          const effectiveTheme = (choice === 'system') ? (prefersDark ? 'dark' : 'light') : choice;
+
+          document.documentElement.setAttribute('data-theme', choice);
+          document.documentElement.setAttribute('data-effective-theme', effectiveTheme);
+
+          if (effectiveTheme === 'light') {
+            document.documentElement.classList.remove('dark');
+          } else {
+            document.documentElement.classList.add('dark');
+          }
+
+          if (selectEl && selectEl.value !== choice) {
+            selectEl.value = choice;
+          }
+
+          if (iconEl) {
+            if (choice === 'system') {
+              iconEl.textContent = prefersDark ? '💻' : '🖥️';
+            } else if (choice === 'dark') {
+              iconEl.textContent = '🌙';
+            } else if (choice === 'light') {
+              iconEl.textContent = '☀️';
+            } else if (choice === 'matrix') {
+              iconEl.textContent = '🟢';
+            }
+          }
+
+          try {
+            localStorage.setItem(THEME_STORAGE_KEY, choice);
+          } catch (e) {
+            console.warn("Unable to persist theme to localStorage:", e);
+          }
+        }
+
+        // Initialize theme from localStorage or fallback to system
+        const initialTheme = localStorage.getItem(THEME_STORAGE_KEY) || 'system';
+        applyTheme(initialTheme);
+
+        // Theme selector dropdown event listener
+        document.getElementById('select-theme')?.addEventListener('change', (e) => {
+          applyTheme(e.target.value);
+        });
+
+        // Listen for system color scheme changes to update dynamically in System Auto mode
+        window.matchMedia('(prefers-color-scheme: dark)').addEventListener('change', () => {
+          const currentChoice = localStorage.getItem(THEME_STORAGE_KEY) || 'system';
+          if (currentChoice === 'system') {
+            applyTheme('system');
+          }
+        });
+
+        // Expose coffeeRunQuest, state, setMobileActiveView, and applyTheme globally for testing or console access
+        window.coffeeRunQuest = coffeeRunQuest;
+        window.gameState = state;
+        window.setMobileActiveView = setMobileActiveView;
+        window.applyTheme = applyTheme;
+      });
+    </script>
+  </body>
+</html>

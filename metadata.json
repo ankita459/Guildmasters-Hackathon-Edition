@@ -1,0 +1,6 @@
+{
+  "name": "Guildmasters: Hackathon Edition",
+  "description": "Tactical card-drafting management sim solving student team formation. Draft student heroes, activate synergy multipliers, and conquer hackathon milestone bosses.",
+  "requestFramePermissions": [],
+  "majorCapabilities": ["MAJOR_CAPABILITY_SERVER_SIDE_GEMINI_API"]
+}
