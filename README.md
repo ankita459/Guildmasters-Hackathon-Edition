@@ -2,7 +2,7 @@
 
 This contains everything you need to run your app locally.
 
-View your app in AI Studio: https://ai.studio/apps/7a2c427a-de2d-463f-b2d1-1e927a32f2ed
+Your deployed game is ready:: https://guildmasters-hackathon-edition.onrender.com
 
 ## Run Locally
 
